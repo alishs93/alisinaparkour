@@ -88,7 +88,8 @@
             border-radius: 14px;
             cursor: pointer;
             box-shadow: 0 5px 0 rgba(0, 0, 0, .28);
-            transition: transform .06s
+            transition: transform .06s;
+            touch-action: manipulation
         }
         
         .btn:active {
@@ -144,7 +145,8 @@
             padding: 8px 12px;
             border-radius: 10px;
             cursor: pointer;
-            font-family: inherit
+            font-family: inherit;
+            touch-action: manipulation
         }
         
         #joyBase {
@@ -186,7 +188,8 @@
             font-weight: 700;
             z-index: 25;
             display: none;
-            pointer-events: auto
+            pointer-events: auto;
+            touch-action: manipulation
         }
         
         body.ingame.mode-touch #jumpBtn {
@@ -290,11 +293,10 @@
     <script>
         'use strict';
         if (!window.THREE) {
-            document.body.innerHTML = '<div style="color:#fff;padding:40px;font-family:Tahoma">خطا: Three.js بارگذاری نشد. اینترنت لازم است (یا three.min.js را کنار فایل بگذار).</div>';
+            document.body.innerHTML = '<div style="color:#fff;padding:40px;font-family:Tahoma">خطا: Three.js بارگذاری نشد.</div>';
             throw new Error('no THREE');
         }
 
-        /* ---------- پایه ---------- */
         const toFa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹' [d]);
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
         const approach = (v, t, a) => v < t ? Math.min(v + a, t) : Math.max(v - a, t);
@@ -315,7 +317,6 @@
             runStartBest = 0,
             shieldCharges = 0;
 
-        /* ---------- ذخیره: کوکی + localStorage ---------- */
         const SAVE = 'pas_save';
 
         function persist() {
@@ -334,9 +335,9 @@
 
         function loadSave() {
             let d = null;
-            const m = document.cookie.match(new RegExp('(?:^|; )' + SAVE + '=([^;]*)'));
-            if (m) try {
-                d = decodeURIComponent(m[1]);
+            try {
+                const m = document.cookie.match(new RegExp('(?:^|; )' + SAVE + '=([^;]*)'));
+                if (m) d = decodeURIComponent(m[1]);
             } catch (e) {}
             if (!d) {
                 try {
@@ -358,7 +359,6 @@
         }
         loadSave();
 
-        /* ---------- سه‌بعدی ---------- */
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.Fog(0xd6ecff, 45, 120);
@@ -445,7 +445,6 @@
             clouds.push(m);
         }
 
-        /* ---------- تکسچرها ---------- */
         function tex(paint) {
             const c = document.createElement('canvas');
             c.width = c.height = 16;
@@ -557,7 +556,6 @@
             move: ms(moveT)
         };
 
-        /* ---------- جهان ---------- */
         const boxGeo = new THREE.BoxGeometry(1, 1, 1);
         const blockMap = new Map();
         let plats = [],
@@ -765,7 +763,6 @@
                 meshes,
                 mover: null
             });
-            // تمپل
             for (const px of[-3, 3])
                 for (const pz of[0, 2])
                     for (let h = 1; h <= 3; h++)
@@ -818,7 +815,6 @@
             for (let i = 1; i < 8; i++) genPlatform(i);
         }
 
-        /* ---------- کاراکتر ---------- */
         let playerModel, charParts = {},
             walkT = 0;
 
@@ -875,7 +871,6 @@
         }
         playerModel = buildCharacter();
 
-        /* ---------- بازیکن و فیزیک ---------- */
         const player = {
             pos: new THREE.Vector3(),
             vel: new THREE.Vector3(),
@@ -1039,7 +1034,6 @@
                         jumps = 0;
                     }
                 }
-                player.vel.y = Math.max(player.vel.y, 0) === 0 && player.vel.y < 0 ? 0 : player.vel.y;
                 if (player.onGround) player.vel.y = 0;
                 else player.vel.y = Math.max(player.vel.y, 0);
             } else {
@@ -1109,7 +1103,6 @@
             die();
         }
 
-        /* ---------- جریان بازی ---------- */
         function defaultCP() {
             return {
                 plat: 0,
@@ -1179,7 +1172,6 @@
             }
         }
 
-        /* ---------- صدا ---------- */
         let actx = null,
             master = null,
             delayNode = null,
@@ -1302,7 +1294,7 @@
             soundOn = localStorage.getItem('pk_sound') !== '0';
         } catch (e) {}
 
-        /* ---------- ورودی ---------- */
+        /* ===== ورودی اصلاح‌شده ===== */
         const keys = {};
         addEventListener('keydown', e => {
             initAudio();
@@ -1339,7 +1331,7 @@
                 pitch = clamp(pitch - e.movementY * .0024, -1.55, 1.55);
             }
         });
-        /*-pointer events: جوی‌استیک و نگاه (لمسی)*/
+
         const joy = {
                 id: null,
                 bx: 0,
@@ -1352,14 +1344,11 @@
             };
         const joyBase = $('joyBase'),
             joyKnob = $('joyKnob');
-        addEventListener('pointerdown', e => {
+
+        // ✅ فقط روی canvas جوی‌استیک/نگاه فعال شود — دکمه‌ها با click عادی کار کنند
+        cv.addEventListener('pointerdown', e => {
             initAudio();
-            if (e.target.closest && e.target.closest('#jumpBtn')) {
-                if (modeTouch && state === 'playing') tryJump();
-                return;
-            }
             if (!modeTouch || state !== 'playing') return;
-            if (e.target.closest && e.target.closest('.btn,.icobtn')) return;
             if (joy.id === null && e.clientX < innerWidth * .45 && e.clientY > innerHeight * .3) {
                 joy.id = e.pointerId;
                 joy.bx = e.clientX;
@@ -1368,12 +1357,17 @@
                 joyBase.style.left = e.clientX + 'px';
                 joyBase.style.top = e.clientY + 'px';
                 joyKnob.style.transform = 'translate(-50%,-50%)';
+                e.preventDefault();
             } else if (look.id === null) {
                 look.id = e.pointerId;
                 look.lx = e.clientX;
                 look.ly = e.clientY;
+                e.preventDefault();
             }
+        }, {
+            passive: false
         });
+
         addEventListener('pointermove', e => {
             if (e.pointerId === joy.id) {
                 let dx = (e.clientX - joy.bx) / 50,
@@ -1411,7 +1405,7 @@
             if (document.hidden && state === 'playing') togglePause();
         });
 
-        /* ---------- UI ---------- */
+        /* ===== UI ===== */
         const $ = id => document.getElementById(id);
         const panels = {
             device: $('device'),
@@ -1467,6 +1461,8 @@
             syncMenu();
             only(panels.menu);
         }
+
+        // ✅ دکمه‌ها مستقیماً با onclick کار می‌کنند — بدون تداخل pointer events
         $('devTouch').onclick = () => setMode(true);
         $('devDesk').onclick = () => setMode(false);
         $('devChangeBtn').onclick = () => {
@@ -1522,7 +1518,6 @@
             renderer.setSize(innerWidth, innerHeight);
         });
 
-        /* ---------- دوربین ---------- */
         const _v1 = new THREE.Vector3(),
             _v2 = new THREE.Vector3(),
             _v3 = new THREE.Vector3();
@@ -1556,7 +1551,6 @@
             sun.target.updateMatrixWorld();
         }
 
-        /* ---------- حلقه اصلی ---------- */
         let lastT = performance.now(),
             acc = 0,
             menuT = 0;
@@ -1587,7 +1581,6 @@
                 yaw = menuT * .3;
                 pitch = -.22;
             }
-            // انیمیشن کاراکتر
             const spd = Math.hypot(player.vel.x, player.vel.z);
             if (state === 'playing' && spd > .6) walkT += dt * (4 + spd);
             else walkT *= .85;
@@ -1598,7 +1591,6 @@
             charParts.armR.rotation.x = sw * .7;
             playerModel.position.copy(player.pos);
             if (spd > .6) playerModel.rotation.y = lerpAngle(playerModel.rotation.y, Math.atan2(player.vel.x, player.vel.z), Math.min(1, dt * 10));
-            // ابرها، بلوک‌های در حال سقوط، سکه‌ها
             for (const c of clouds) {
                 c.position.x += dt * 1.2;
                 if (c.position.x > camera.position.x + 180) c.position.x -= 360;
