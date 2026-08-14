@@ -46,7 +46,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
+            gap: 12px;
             background: linear-gradient(rgba(8, 18, 38, .5), rgba(8, 18, 38, .72));
             z-index: 100;
             padding: 20px;
@@ -63,7 +63,7 @@
         
         h2 {
             color: #fff;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 900;
             text-shadow: 0 3px 0 rgba(0, 0, 0, .4)
         }
@@ -77,9 +77,9 @@
         
         .btn {
             min-width: min(75vw, 320px);
-            padding: 14px 24px;
+            padding: 12px 24px;
             font-family: inherit;
-            font-size: 19px;
+            font-size: 18px;
             font-weight: 700;
             color: #fff;
             background: linear-gradient(#6cc94f, #48a336);
@@ -252,12 +252,67 @@
             direction: ltr;
             text-align: left
         }
+        /* استایل‌های جدید موزیک */
+        
+        .music-box {
+            background: rgba(0, 0, 0, .3);
+            border-radius: 12px;
+            padding: 15px;
+            width: min(85vw, 340px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+        
+        .music-box label {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700
+        }
+        
+        .music-select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            direction: ltr;
+            text-align: left
+        }
+        
+        .music-select option {
+            background: #2a3a5a;
+            color: #fff
+        }
+        
+        .now-playing {
+            color: #ffd54a;
+            font-size: 12px;
+            margin-top: 4px;
+            min-height: 18px
+        }
+        
+        .vol-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 13px
+        }
+        
+        .vol-row input {
+            flex: 1;
+            accent-color: #6cc94f
+        }
     </style>
 </head>
 
 <body>
     <div id="game"></div>
-
     <div id="touchZone">
         <div id="joyBase">
             <div id="joyKnob"></div>
@@ -300,8 +355,93 @@
         <button class="btn alt" data-act="helpBack">بازگشت</button>
     </div>
 
+    <!-- منوی توقف با قابلیت انتخاب موزیک -->
     <div id="pausePanel" class="panel hidden">
         <h2>⏸ توقف</h2>
+
+        <div class="music-box">
+            <label>🎵 موزیک ماینکرافت</label>
+            <select class="music-select" id="musicSelect">
+      <option value="none">— بدون موزیک —</option>
+      <option value="procedural">🎹 ملودی آرامش‌بخش (پیش‌فرض)</option>
+      <optgroup label="🎼 C418 - Volume Alpha & Beta">
+        <option value="calm1">Calm 1 (Minecraft)</option>
+        <option value="calm2">Calm 2 (Clark)</option>
+        <option value="calm3">Calm 3 (Sweden)</option>
+        <option value="hal1">Hal 1 (Subwoofer Lullaby)</option>
+        <option value="hal2">Hal 2 (Living Mice)</option>
+        <option value="hal3">Hal 3 (Haggstrom)</option>
+        <option value="hal4">Hal 4 (Danny Makes Us Proud)</option>
+        <option value="nuance1">Nuance 1 (Équinoxe)</option>
+        <option value="nuance2">Nuance 2 (Oxygène)</option>
+        <option value="piano1">Piano 1 (Moog City)</option>
+        <option value="piano2">Piano 2 (Beginning)</option>
+        <option value="piano3">Piano 3 (Intermission)</option>
+      </optgroup>
+      <optgroup label="🎼 C418 - Volume Beta">
+        <option value="alpha">Alpha</option>
+        <option value="beta">Beta</option>
+        <option value="biome_fest">Biome Fest</option>
+        <option value="blindness">Blindness</option>
+        <option value="chirp">Chirp</option>
+        <option value="far">Far</option>
+        <option value="mall">Mall</option>
+        <option value="mellohi">Mellohi</option>
+        <option value="stal">Stal</option>
+        <option value="strad">Strad</option>
+        <option value="ward">Ward</option>
+        <option value="wait">Wait</option>
+        <option value="wilt">Wilt</option>
+        <option value="ki">Ki</option>
+        <option value="mutation">Mutation</option>
+        <option value="moog_city_2">Moog City 2</option>
+        <option value="concrete_halls">Concrete Halls</option>
+        <option value="dead_voxel">Dead Voxel</option>
+        <option value="warmth">Warmth</option>
+        <option value="floating_trees">Floating Trees</option>
+        <option value="aria_math">Aria Math</option>
+        <option value="taswell">Taswell</option>
+        <option value="the_end">The End</option>
+        <option value="dreiton">Dreiton</option>
+      </optgroup>
+      <optgroup label="🎼 Lena Raine - Nether & Caves">
+        <option value="pigstep">Pigstep 🆕</option>
+        <option value="otherside">Otherside 🆕</option>
+        <option value="rubedo">Rubedo</option>
+        <option value="so_below">So Below</option>
+        <option value="firebugs">Firebugs</option>
+        <option value="labyrinthine">Labyrinthine</option>
+        <option value="ballad_of_the_cats">Ballad of the Cats</option>
+        <option value="comforting_memories">Comforting Memories</option>
+        <option value="floating_dream">Floating Dream</option>
+        <option value="one_more_day">One More Day</option>
+        <option value="stand_tall">Stand Tall</option>
+        <option value="left_to_bloom">Left to Bloom</option>
+        <option value="ancestry">Ancestry</option>
+        <option value="wending">Wending</option>
+        <option value="infinite_amethyst">Infinite Amethyst</option>
+        <option value="aerie">Aerie</option>
+      </optgroup>
+      <optgroup label="🎼 Aaron Cherof & Newer">
+        <option value="relic">Relic 🆕</option>
+        <option value="creator">Creator</option>
+        <option value="precipice">Precipice 🆕</option>
+        <option value="echo_in_the_wind">Echo in the Wind 🆕</option>
+        <option value="broken_clocks">Broken Clocks 🆕</option>
+        <option value="featherfall">Featherfall 🆕</option>
+        <option value="watcher">Watcher 🆕</option>
+        <option value="puzzlebox">Puzzlebox 🆕</option>
+        <option value="doomsday">Doomsday 🆕</option>
+      </optgroup>
+    </select>
+            <div class="now-playing" id="nowPlaying"></div>
+            <div class="vol-row">
+                <span>🔈</span>
+                <input type="range" id="musicVol" min="0" max="100" value="40">
+                <span id="volLabel">40%</span>
+            </div>
+        </div>
+
         <button class="btn" data-act="resume">ادامه</button>
         <button class="btn alt" data-act="restart">شروع دوباره</button>
         <button class="btn gray" data-act="pauseMenu">منوی اصلی</button>
@@ -320,7 +460,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         'use strict';
-        /* ===== خطایابی: اگر خطایی رخ داد اینجا نمایش بده ===== */
         window.addEventListener('error', function(e) {
             var b = document.getElementById('errbox');
             if (b) {
@@ -329,7 +468,6 @@
             }
         });
 
-        /* ===== المان‌ها (اول از همه تعریف می‌شوند) ===== */
         function $id(i) {
             return document.getElementById(i);
         }
@@ -355,10 +493,13 @@
             cc: $id('coinChip'),
             bc: $id('bestChip'),
             pc: $id('powChip'),
-            snd: $id('btnSound')
+            snd: $id('btnSound'),
+            mSel: $id('musicSelect'),
+            np: $id('nowPlaying'),
+            mVol: $id('musicVol'),
+            vLbl: $id('volLabel')
         };
 
-        /* ===== وضعیت ===== */
         var state = 'device',
             touchMode = false,
             thirdPerson = true,
@@ -374,7 +515,6 @@
         } catch (e) {}
         var checkpoint = null;
 
-        /* ===== کمکی ===== */
         function toFa(n) {
             return String(n).replace(/\d/g, function(d) {
                 return '۰۱۲۳۴۵۶۷۸۹' [d];
@@ -413,7 +553,6 @@
             }, 2300);
         }
 
-        /* ===== ذخیره ===== */
         var SKEY = 'pas_save';
 
         function saveData() {
@@ -447,8 +586,156 @@
         loadData();
 
         /* ============================================
-           سه‌بعدی و بازی — داخل try/catch تا اگر خطا داد
-           دکمه‌ها همچنان کار کنند و خطا نمایش داده شود
+           سیستم موزیک ماینکرافت
+           ============================================ */
+        var MUSIC_BASE = 'https://raw.githubusercontent.com/C418-Music/Minecraft-Music/main/';
+        // نگاشت کلید → مسیر فایل واقعی
+        var MUSIC_MAP = {
+            calm1: 'Volume Alpha/calm/calm1.ogg',
+            calm2: 'Volume Alpha/calm/calm2.ogg',
+            calm3: 'Volume Alpha/calm/calm3.ogg',
+            hal1: 'Volume Alpha/hal/hal1.ogg',
+            hal2: 'Volume Alpha/hal/hal2.ogg',
+            hal3: 'Volume Alpha/hal/hal3.ogg',
+            hal4: 'Volume Alpha/hal/hal4.ogg',
+            nuance1: 'Volume Alpha/nuance/nuance1.ogg',
+            nuance2: 'Volume Alpha/nuance/nuance2.ogg',
+            piano1: 'Volume Alpha/piano/piano1.ogg',
+            piano2: 'Volume Alpha/piano/piano2.ogg',
+            piano3: 'Volume Alpha/piano/piano3.ogg',
+            alpha: 'Volume Beta/alpha.ogg',
+            beta: 'Volume Beta/beta.ogg',
+            biome_fest: 'Volume Beta/biome_fest.ogg',
+            blindness: 'Volume Beta/blindness.ogg',
+            chirp: 'Volume Beta/chirp.ogg',
+            far: 'Volume Beta/far.ogg',
+            mall: 'Volume Beta/mall.ogg',
+            mellohi: 'Volume Beta/mellohi.ogg',
+            stal: 'Volume Beta/stal.ogg',
+            strad: 'Volume Beta/strad.ogg',
+            ward: 'Volume Beta/ward.ogg',
+            wait: 'Volume Beta/wait.ogg',
+            wilt: 'Volume Beta/wilt.ogg',
+            ki: 'Volume Beta/ki.ogg',
+            mutation: 'Volume Beta/mutation.ogg',
+            moog_city_2: 'Volume Beta/moog_city_2.ogg',
+            concrete_halls: 'Volume Beta/concrete_halls.ogg',
+            dead_voxel: 'Volume Beta/dead_voxel.ogg',
+            warmth: 'Volume Beta/warmth.ogg',
+            floating_trees: 'Volume Beta/floating_trees.ogg',
+            aria_math: 'Volume Beta/aria_math.ogg',
+            taswell: 'Volume Beta/taswell.ogg',
+            the_end: 'Volume Beta/the_end.ogg',
+            dreiton: 'Volume Beta/dreiton.ogg',
+            pigstep: 'Nether Update/pigstep.ogg',
+            otherside: 'Caves & Cliffs/otherside.ogg',
+            rubedo: 'Nether Update/rubedo.ogg',
+            so_below: 'Nether Update/so_below.ogg',
+            firebugs: 'Nether Update/firebugs.ogg',
+            labyrinthine: 'Nether Update/labyrinthine.ogg',
+            ballad_of_the_cats: 'Nether Update/ballad_of_the_cats.ogg',
+            comforting_memories: 'Trails & Tales/comforting_memories.ogg',
+            floating_dream: 'Trails & Tales/floating_dream.ogg',
+            one_more_day: 'Trails & Tales/one_more_day.ogg',
+            stand_tall: 'Trails & Tales/stand_tall.ogg',
+            left_to_bloom: 'Trails & Tales/left_to_bloom.ogg',
+            ancestry: 'Trails & Tales/ancestry.ogg',
+            wending: 'Trails & Tales/wending.ogg',
+            infinite_amethyst: 'Trails & Tales/infinite_amethyst.ogg',
+            aerie: 'Trails & Tales/aerie.ogg',
+            relic: 'Trails & Tales/relic.ogg',
+            creator: 'Trails & Tales/creator.ogg',
+            precipice: '2024/precipice.ogg',
+            echo_in_the_wind: '2024/echo_in_the_wind.ogg',
+            broken_clocks: '2024/broken_clocks.ogg',
+            featherfall: '2024/featherfall.ogg',
+            watcher: '2024/watcher.ogg',
+            puzzlebox: '2024/puzzlebox.ogg',
+            doomsday: '2024/doomsday.ogg'
+        };
+
+        var mcAudio = null,
+            currentTrack = 'procedural',
+            musicVolume = 0.4;
+        try {
+            var savedTrack = localStorage.getItem('pk_music');
+            if (savedTrack) currentTrack = savedTrack;
+            var savedVol = localStorage.getItem('pk_mvol');
+            if (savedVol) musicVolume = parseFloat(savedVol);
+        } catch (e) {}
+
+        function stopMusic() {
+            if (mcAudio) {
+                mcAudio.pause();
+                mcAudio.src = '';
+                mcAudio = null;
+            }
+            clearTimeout(musicTimer);
+        }
+
+        function playMCTrack(key) {
+            stopMusic();
+            if (key === 'none') {
+                el.np.textContent = '';
+                return;
+            }
+            if (key === 'procedural') {
+                startProcedural();
+                el.np.textContent = '🎹 ملودی آرامش‌بخش';
+                return;
+            }
+            var path = MUSIC_MAP[key];
+            if (!path) {
+                el.np.textContent = '❌ آهنگ یافت نشد';
+                return;
+            }
+            mcAudio = new Audio(MUSIC_BASE + path);
+            mcAudio.volume = musicVolume;
+            mcAudio.loop = true;
+            mcAudio.onended = function() {
+                if (currentTrack === key && state !== 'device') mcAudio.play().catch(function() {});
+            };
+            mcAudio.onerror = function() {
+                el.np.textContent = '❌ خطا در بارگذاری';
+                toast('آهنگ بارگذاری نشد');
+            };
+            mcAudio.play().then(function() {
+                var opt = el.mSel.querySelector('option[value="' + key + '"]');
+                el.np.textContent = '🎵 ' + opt.textContent;
+            }).catch(function() {
+                el.np.textContent = '⚠ کلیک کنید تا پخش شود';
+            });
+        }
+
+        function setMusic(key) {
+            currentTrack = key;
+            try {
+                localStorage.setItem('pk_music', key);
+            } catch (e) {}
+            el.mSel.value = key;
+            if (soundOn) playMCTrack(key);
+            else stopMusic();
+        }
+
+        // مقداردهی اولیه select و volume
+        el.mSel.value = currentTrack;
+        el.mVol.value = Math.round(musicVolume * 100);
+        el.vLbl.textContent = Math.round(musicVolume * 100) + '%';
+
+        el.mSel.addEventListener('change', function() {
+            setMusic(this.value);
+        });
+        el.mVol.addEventListener('input', function() {
+            musicVolume = this.value / 100;
+            el.vLbl.textContent = this.value + '%';
+            if (mcAudio) mcAudio.volume = musicVolume;
+            try {
+                localStorage.setItem('pk_mvol', String(musicVolume));
+            } catch (e) {}
+        });
+
+        /* ============================================
+           Three.js و بازی
            ============================================ */
         var R = null,
             cv = null,
@@ -800,7 +1087,6 @@
             PM = g;
         }
 
-        /* ===== ساخت جهان ===== */
         function addBlock(x, y, z, type, plat, sol) {
             if (sol === undefined) sol = true;
             var m = new THREE.Mesh(BG, mats[type]);
@@ -1039,7 +1325,6 @@
             for (var j = 1; j < 8; j++) genPlat(j);
         }
 
-        /* ===== فیزیک ===== */
         var PW = .3,
             PH = 1.8,
             GV = 28,
@@ -1253,7 +1538,7 @@
             if (P.pos.y < my - 9) fallOut();
         }
 
-        /* ===== صدا ===== */
+        /* ===== صدا (SFX + Procedural Music) ===== */
         function initAudio() {
             if (!soundOn) return;
             if (!audioStarted) {
@@ -1273,7 +1558,8 @@
                     w.gain.value = .4;
                     delayN.connect(w);
                     w.connect(master);
-                    startMusic();
+                    if (currentTrack === 'procedural') startProcedural();
+                    else if (currentTrack !== 'none') playMCTrack(currentTrack);
                 } catch (e) {}
             }
             if (actx && actx.state === 'suspended') actx.resume();
@@ -1317,7 +1603,7 @@
             o.stop(t + dur + .1);
         }
 
-        function startMusic() {
+        function startProcedural() {
             padN(110, .05);
             padN(164.81, .04);
             padN(220, .03);
@@ -1327,7 +1613,7 @@
         }
 
         function schM() {
-            if (!soundOn) return;
+            if (!soundOn || currentTrack !== 'procedural') return;
             if (Math.random() < .85) pluck(mel[Math.random() * mel.length | 0], 2.8);
             musicTimer = setTimeout(schM, 1400 + Math.random() * 1800);
         }
@@ -1371,7 +1657,6 @@
             } else if (k === 'di') tn(300, 60, .6, .14, 'sawtooth');
         }
 
-        /* ===== جریان بازی ===== */
         function respawnAt(cp) {
             P.pos.copy(cp.pos);
             P.vel.set(0, 0, 0);
@@ -1463,7 +1748,6 @@
             openPanel(el.menu);
         }
 
-        /* ===== HUD ===== */
         function updHUD() {
             el.sc.textContent = 'امتیاز: ' + toFa(score);
             el.cc.textContent = '🪙 ' + toFa(coinsTotal);
@@ -1480,7 +1764,6 @@
             el.snd.textContent = soundOn ? '🔊 صدا: روشن' : '🔇 صدا: خاموش';
         }
 
-        /* ===== ورودی ===== */
         addEventListener('keydown', function(e) {
             initAudio();
             if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
@@ -1509,7 +1792,6 @@
             };
         }
 
-        /* تلاش برای شروع سه‌بعدی */
         try {
             initThree();
         } catch (err) {
@@ -1531,7 +1813,6 @@
             });
         }
 
-        /* جوی‌استیک و نگاه — فقط روی touchZone */
         if (el.tz) {
             el.tz.addEventListener('pointerdown', function(e) {
                 if (state !== 'playing' || !touchMode) return;
@@ -1591,7 +1872,6 @@
             if (document.hidden && state === 'playing') togglePause();
         });
 
-        /* دکمه پرش */
         el.jump.addEventListener('touchstart', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1603,7 +1883,6 @@
             if (state === 'playing') tryJump();
         });
 
-        /* ===== سیستم مرکزی دکمه‌ها (تضمین کارکرد) ===== */
         var actions = {
             devTouch: function() {
                 setMode(true);
@@ -1647,8 +1926,10 @@
                     localStorage.setItem('pk_sound', soundOn ? '1' : '0');
                 } catch (e) {}
                 syncSound();
-                if (!soundOn) clearTimeout(musicTimer);
-                else {
+                if (!soundOn) {
+                    stopMusic();
+                    clearTimeout(musicTimer);
+                } else {
                     audioStarted = false;
                     initAudio();
                 }
@@ -1676,7 +1957,6 @@
             }
         });
 
-        /* ===== دوربین ===== */
         var _v1 = new THREE.Vector3(),
             _v2 = new THREE.Vector3(),
             _v3 = new THREE.Vector3();
@@ -1710,7 +1990,6 @@
             sun.target.updateMatrixWorld();
         }
 
-        /* ===== حلقه اصلی ===== */
         function loop(now) {
             requestAnimationFrame(loop);
             var dt = Math.min((now - lastT) / 1000, .05);
