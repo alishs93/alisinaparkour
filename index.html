@@ -339,8 +339,9 @@
     <div id="devicePanel" class="panel">
         <h1>پارکور باز</h1>
         <div class="sub">روی چه دستگاهی بازی می‌کنی؟</div>
-        <button class="btn" data-act="devTouch">📱 گوشی / تبلت</button>
+        <button class="btn" data-act="devTouch">📱 گوشی / تبلت (میدونم رو گوشی هستی🤫)</button>
         <button class="btn alt" data-act="devDesk">🖥 ویندوز / کامپیوتر</button>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
     </div>
 
     <div id="menuPanel" class="panel hidden">
@@ -352,16 +353,20 @@
         <button class="btn alt" data-act="help">📖 راهنما</button>
         <button class="btn gray" data-act="sound" id="btnSound">🔊 صدا: روشن</button>
         <button class="btn gray" data-act="devChange">🔁 تغییر دستگاه</button>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
     </div>
 
     <div id="helpPanel" class="panel hidden">
         <h2>راهنما</h2>
         <div class="sub" id="helpText"></div>
         <button class="btn alt" data-act="helpBack">بازگشت</button>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
     </div>
 
     <!-- منوی توقف با قابلیت انتخاب موزیک -->
     <div id="pausePanel" class="panel hidden">
+        <br><br>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
         <h2>⏸ توقف</h2>
 
         <div class="music-box">
@@ -451,6 +456,7 @@
         <button class="btn alt" data-act="restart">شروع دوباره</button>
         <button class="btn gray" data-act="pauseMenu">منوی اصلی</button>
         <button class="btn gray" data-act="pauseDev">🔁 تغییر دستگاه</button>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
     </div>
 
     <div id="deadPanel" class="panel hidden">
@@ -460,1615 +466,1616 @@
         <button class="btn gold" data-act="cp" id="btnCP">🚩 ادامه از چک‌پوینت</button>
         <button class="btn" data-act="retry">🔄 شروع از اول</button>
         <button class="btn gray" data-act="deadMenu">منوی اصلی</button>
-    </div>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
+        < </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        'use strict';
-        window.addEventListener('error', function(e) {
-            var b = document.getElementById('errbox');
-            if (b) {
-                b.style.display = 'block';
-                b.textContent = 'JS Error: ' + e.message + ' (line ' + e.lineno + ')';
-            }
-        });
-
-        function $id(i) {
-            return document.getElementById(i);
-        }
-        var el = {
-            device: $id('devicePanel'),
-            menu: $id('menuPanel'),
-            help: $id('helpPanel'),
-            pause: $id('pausePanel'),
-            dead: $id('deadPanel'),
-            hud: $id('hud'),
-            tz: $id('touchZone'),
-            jb: $id('joyBase'),
-            jk: $id('joyKnob'),
-            jump: $id('jumpBtn'),
-            mb: $id('menuBest'),
-            mc: $id('menuCoins'),
-            ht: $id('helpText'),
-            ds: $id('deadScore'),
-            db: $id('deadBest'),
-            dn: $id('deadNew'),
-            cpb: $id('btnCP'),
-            sc: $id('scoreChip'),
-            cc: $id('coinChip'),
-            bc: $id('bestChip'),
-            pc: $id('powChip'),
-            snd: $id('btnSound'),
-            mSel: $id('musicSelect'),
-            np: $id('nowPlaying'),
-            mVol: $id('musicVol'),
-            vLbl: $id('volLabel')
-        };
-
-        var state = 'device',
-            touchMode = false,
-            thirdPerson = true,
-            score = 0,
-            best = 0,
-            coinsTotal = 0,
-            unlocked = false,
-            runStartBest = 0,
-            shieldCharges = 0;
-        var soundOn = true;
-        try {
-            soundOn = localStorage.getItem('pk_sound') !== '0';
-        } catch (e) {}
-        var checkpoint = null;
-
-        function toFa(n) {
-            return String(n).replace(/\d/g, function(d) {
-                return '۰۱۲۳۴۵۶۷۸۹' [d];
-            });
-        }
-
-        function sh(e) {
-            if (e) e.classList.remove('hidden');
-        }
-
-        function hi(e) {
-            if (e) e.classList.add('hidden');
-        }
-
-        function hideAll() {
-            hi(el.device);
-            hi(el.menu);
-            hi(el.help);
-            hi(el.pause);
-            hi(el.dead);
-        }
-
-        function openPanel(p) {
-            hideAll();
-            sh(p);
-        }
-        var toastT = null;
-
-        function toast(m) {
-            var t = $id('toast');
-            t.textContent = m;
-            t.classList.add('on');
-            clearTimeout(toastT);
-            toastT = setTimeout(function() {
-                t.classList.remove('on');
-            }, 2300);
-        }
-
-        var SKEY = 'pas_save';
-
-        function saveData() {
-            try {
-                var d = JSON.stringify({
-                    best: best,
-                    coins: coinsTotal,
-                    unlocked: unlocked
-                });
-                localStorage.setItem(SKEY, d);
-                document.cookie = SKEY + '=' + encodeURIComponent(d) + ';max-age=31536000;path=/;SameSite=Lax';
-            } catch (e) {}
-        }
-
-        function loadData() {
-            try {
-                var d = localStorage.getItem(SKEY);
-                if (!d) {
-                    var m = document.cookie.match(/(?:^|; )pas_save=([^;]*)/);
-                    if (m) d = decodeURIComponent(m[1]);
-                }
-                if (d) {
-                    var o = JSON.parse(d);
-                    best = o.best || 0;
-                    coinsTotal = o.coins || 0;
-                    unlocked = !!o.unlocked;
-                }
-            } catch (e) {}
-            if (coinsTotal >= 30) unlocked = true;
-        }
-        loadData();
-
-        /* ============================================
-           سیستم موزیک ماینکرافت
-           ============================================ */
-        var MUSIC_BASE = 'https://raw.githubusercontent.com/C418-Music/Minecraft-Music/main/';
-        // نگاشت کلید → مسیر فایل واقعی
-        var MUSIC_MAP = {
-            calm1: 'Volume Alpha/calm/calm1.ogg',
-            calm2: 'Volume Alpha/calm/calm2.ogg',
-            calm3: 'Volume Alpha/calm/calm3.ogg',
-            hal1: 'Volume Alpha/hal/hal1.ogg',
-            hal2: 'Volume Alpha/hal/hal2.ogg',
-            hal3: 'Volume Alpha/hal/hal3.ogg',
-            hal4: 'Volume Alpha/hal/hal4.ogg',
-            nuance1: 'Volume Alpha/nuance/nuance1.ogg',
-            nuance2: 'Volume Alpha/nuance/nuance2.ogg',
-            piano1: 'Volume Alpha/piano/piano1.ogg',
-            piano2: 'Volume Alpha/piano/piano2.ogg',
-            piano3: 'Volume Alpha/piano/piano3.ogg',
-            alpha: 'Volume Beta/alpha.ogg',
-            beta: 'Volume Beta/beta.ogg',
-            biome_fest: 'Volume Beta/biome_fest.ogg',
-            blindness: 'Volume Beta/blindness.ogg',
-            chirp: 'Volume Beta/chirp.ogg',
-            far: 'Volume Beta/far.ogg',
-            mall: 'Volume Beta/mall.ogg',
-            mellohi: 'Volume Beta/mellohi.ogg',
-            stal: 'Volume Beta/stal.ogg',
-            strad: 'Volume Beta/strad.ogg',
-            ward: 'Volume Beta/ward.ogg',
-            wait: 'Volume Beta/wait.ogg',
-            wilt: 'Volume Beta/wilt.ogg',
-            ki: 'Volume Beta/ki.ogg',
-            mutation: 'Volume Beta/mutation.ogg',
-            moog_city_2: 'Volume Beta/moog_city_2.ogg',
-            concrete_halls: 'Volume Beta/concrete_halls.ogg',
-            dead_voxel: 'Volume Beta/dead_voxel.ogg',
-            warmth: 'Volume Beta/warmth.ogg',
-            floating_trees: 'Volume Beta/floating_trees.ogg',
-            aria_math: 'Volume Beta/aria_math.ogg',
-            taswell: 'Volume Beta/taswell.ogg',
-            the_end: 'Volume Beta/the_end.ogg',
-            dreiton: 'Volume Beta/dreiton.ogg',
-            pigstep: 'Nether Update/pigstep.ogg',
-            otherside: 'Caves & Cliffs/otherside.ogg',
-            rubedo: 'Nether Update/rubedo.ogg',
-            so_below: 'Nether Update/so_below.ogg',
-            firebugs: 'Nether Update/firebugs.ogg',
-            labyrinthine: 'Nether Update/labyrinthine.ogg',
-            ballad_of_the_cats: 'Nether Update/ballad_of_the_cats.ogg',
-            comforting_memories: 'Trails & Tales/comforting_memories.ogg',
-            floating_dream: 'Trails & Tales/floating_dream.ogg',
-            one_more_day: 'Trails & Tales/one_more_day.ogg',
-            stand_tall: 'Trails & Tales/stand_tall.ogg',
-            left_to_bloom: 'Trails & Tales/left_to_bloom.ogg',
-            ancestry: 'Trails & Tales/ancestry.ogg',
-            wending: 'Trails & Tales/wending.ogg',
-            infinite_amethyst: 'Trails & Tales/infinite_amethyst.ogg',
-            aerie: 'Trails & Tales/aerie.ogg',
-            relic: 'Trails & Tales/relic.ogg',
-            creator: 'Trails & Tales/creator.ogg',
-            precipice: '2024/precipice.ogg',
-            echo_in_the_wind: '2024/echo_in_the_wind.ogg',
-            broken_clocks: '2024/broken_clocks.ogg',
-            featherfall: '2024/featherfall.ogg',
-            watcher: '2024/watcher.ogg',
-            puzzlebox: '2024/puzzlebox.ogg',
-            doomsday: '2024/doomsday.ogg'
-        };
-
-        var mcAudio = null,
-            currentTrack = 'procedural',
-            musicVolume = 0.4;
-        try {
-            var savedTrack = localStorage.getItem('pk_music');
-            if (savedTrack) currentTrack = savedTrack;
-            var savedVol = localStorage.getItem('pk_mvol');
-            if (savedVol) musicVolume = parseFloat(savedVol);
-        } catch (e) {}
-
-        function stopMusic() {
-            if (mcAudio) {
-                mcAudio.pause();
-                mcAudio.src = '';
-                mcAudio = null;
-            }
-            clearTimeout(musicTimer);
-        }
-
-        function playMCTrack(key) {
-            stopMusic();
-            if (key === 'none') {
-                el.np.textContent = '';
-                return;
-            }
-            if (key === 'procedural') {
-                startProcedural();
-                el.np.textContent = '🎹 ملودی آرامش‌بخش';
-                return;
-            }
-            var path = MUSIC_MAP[key];
-            if (!path) {
-                el.np.textContent = '❌ آهنگ یافت نشد';
-                return;
-            }
-            mcAudio = new Audio(MUSIC_BASE + path);
-            mcAudio.volume = musicVolume;
-            mcAudio.loop = true;
-            mcAudio.onended = function() {
-                if (currentTrack === key && state !== 'device') mcAudio.play().catch(function() {});
-            };
-            mcAudio.onerror = function() {
-                el.np.textContent = '❌ خطا در بارگذاری';
-                toast('آهنگ بارگذاری نشد');
-            };
-            mcAudio.play().then(function() {
-                var opt = el.mSel.querySelector('option[value="' + key + '"]');
-                el.np.textContent = '🎵 ' + opt.textContent;
-            }).catch(function() {
-                el.np.textContent = '⚠ کلیک کنید تا پخش شود';
-            });
-        }
-
-        function setMusic(key) {
-            currentTrack = key;
-            try {
-                localStorage.setItem('pk_music', key);
-            } catch (e) {}
-            el.mSel.value = key;
-            if (soundOn) playMCTrack(key);
-            else stopMusic();
-        }
-
-        // مقداردهی اولیه select و volume
-        el.mSel.value = currentTrack;
-        el.mVol.value = Math.round(musicVolume * 100);
-        el.vLbl.textContent = Math.round(musicVolume * 100) + '%';
-
-        el.mSel.addEventListener('change', function() {
-            setMusic(this.value);
-        });
-        el.mVol.addEventListener('input', function() {
-            musicVolume = this.value / 100;
-            el.vLbl.textContent = this.value + '%';
-            if (mcAudio) mcAudio.volume = musicVolume;
-            try {
-                localStorage.setItem('pk_mvol', String(musicVolume));
-            } catch (e) {}
-        });
-
-        /* ============================================
-           Three.js و بازی
-           ============================================ */
-        var R = null,
-            cv = null,
-            scene = null,
-            camera = null,
-            skyMesh = null,
-            sun = null,
-            sunSpr = null,
-            clouds = [],
-            PM = null,
-            CP = {};
-        var BM = null,
-            plats = [],
-            movers = [],
-            coinsArr = [],
-            falling = [],
-            npi = 1,
-            breakT = null,
-            coinMat = null;
-        var BG = null,
-            mats = null,
-            T = null;
-        var P = {
-            pos: null,
-            vel: null,
-            og: false
-        };
-        var yaw = Math.PI,
-            pit = -.05,
-            lastPlat = 0,
-            jumpBuf = 0,
-            jumpCount = 0,
-            shakeAmt = 0,
-            walkT = 0;
-        var inp = {
-                x: 0,
-                y: 0
-            },
-            keys = {};
-        var joy = {
-                id: null,
-                bx: 0,
-                by: 0
-            },
-            look = {
-                id: null,
-                lx: 0,
-                ly: 0
-            };
-        var lastT = performance.now(),
-            accum = 0,
-            menuTime = 0;
-        var actx = null,
-            master = null,
-            delayN = null,
-            audioStarted = false,
-            musicTimer = null;
-        var gameReady = false;
-
-        function initThree() {
-            if (!window.THREE) throw new Error('Three.js load nashod');
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.Fog(0xd6ecff, 45, 120);
-            camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, .1, 1200);
-            camera.rotation.order = 'YXZ';
-            R = new THREE.WebGLRenderer({
-                antialias: true
-            });
-            R.setPixelRatio(Math.min(devicePixelRatio, 2));
-            R.setSize(innerWidth, innerHeight);
-            R.shadowMap.enabled = true;
-            R.shadowMap.type = THREE.PCFSoftShadowMap;
-            $id('game').appendChild(R.domElement);
-            cv = R.domElement;
-            scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x8a7f5a, .9));
-            sun = new THREE.DirectionalLight(0xfff4d6, 1);
-            sun.castShadow = true;
-            sun.shadow.mapSize.set(1024, 1024);
-            sun.shadow.bias = -.001;
-            var s2 = sun.shadow.camera;
-            s2.left = s2.bottom = -32;
-            s2.right = s2.top = 32;
-            s2.far = 300;
-            scene.add(sun);
-            scene.add(sun.target);
-            skyMesh = new THREE.Mesh(new THREE.SphereGeometry(600, 16, 12), new THREE.ShaderMaterial({
-                side: THREE.BackSide,
-                depthWrite: false,
-                vertexShader: 'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-                fragmentShader: 'varying vec3 v;void main(){float h=normalize(v).y;vec3 c=mix(vec3(.88,.95,1),vec3(.62,.82,1),smoothstep(-.05,.25,h));c=mix(c,vec3(.33,.6,.98),smoothstep(.25,.75,h));gl_FragColor=vec4(c,1.);}'
-            }));
-            scene.add(skyMesh);
-            var sc2 = document.createElement('canvas');
-            sc2.width = sc2.height = 64;
-            var g2 = sc2.getContext('2d');
-            var gr = g2.createRadialGradient(32, 32, 4, 32, 32, 30);
-            gr.addColorStop(0, 'rgba(255,255,235,1)');
-            gr.addColorStop(.35, 'rgba(255,240,180,.9)');
-            gr.addColorStop(1, 'rgba(255,240,180,0)');
-            g2.fillStyle = gr;
-            g2.fillRect(0, 0, 64, 64);
-            sunSpr = new THREE.Sprite(new THREE.SpriteMaterial({
-                fog: false,
-                transparent: true,
-                map: new THREE.CanvasTexture(sc2)
-            }));
-            sunSpr.scale.set(90, 90, 1);
-            scene.add(sunSpr);
-            var cc = document.createElement('canvas');
-            cc.width = cc.height = 128;
-            var cg = cc.getContext('2d');
-            cg.fillStyle = 'rgba(255,255,255,.95)';
-            for (var i = 0; i < 14; i++) {
-                cg.beginPath();
-                cg.ellipse(20 + Math.random() * 88, 40 + Math.random() * 48, 14 + Math.random() * 18, 8 + Math.random() * 10, 0, 0, 6.28);
-                cg.fill();
-            }
-            var cloudTex = new THREE.CanvasTexture(cc);
-            for (var i = 0; i < 12; i++) {
-                var m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
-                    map: cloudTex,
-                    transparent: true,
-                    opacity: .85,
-                    depthWrite: false,
-                    fog: false,
-                    side: THREE.DoubleSide
-                }));
-                var s = 18 + Math.random() * 26;
-                m.scale.set(s, s * .55, 1);
-                m.rotation.x = -Math.PI / 2;
-                m.position.set((Math.random() - .5) * 320, 34 + Math.random() * 14, Math.random() * 320 - 40);
-                scene.add(m);
-                clouds.push(m);
-            }
-            makeTextures();
-            makeCharacter();
-            BM = new Map();
-            breakT = new Map();
-            BG = new THREE.BoxGeometry(1, 1, 1);
-            coinMat = new THREE.MeshLambertMaterial({
-                color: 0xffd23e,
-                emissive: 0x7a5a00
-            });
-            P.pos = new THREE.Vector3(.5, 12.2, 4.5);
-            P.vel = new THREE.Vector3();
-            gameReady = true;
-        }
-
-        function makeTextures() {
-            function tx(p) {
-                var c = document.createElement('canvas');
-                c.width = c.height = 16;
-                p(c.getContext('2d'));
-                var t = new THREE.CanvasTexture(c);
-                t.magFilter = t.minFilter = THREE.NearestFilter;
-                return t;
-            }
-
-            function rn(a) {
-                return a[Math.random() * a.length | 0];
-            }
-
-            function fl(g, c) {
-                for (var y = 0; y < 16; y++)
-                    for (var x = 0; x < 16; x++) {
-                        g.fillStyle = rn(c);
-                        g.fillRect(x, y, 1, 1);
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script>
+                'use strict';
+                window.addEventListener('error', function(e) {
+                    var b = document.getElementById('errbox');
+                    if (b) {
+                        b.style.display = 'block';
+                        b.textContent = 'JS Error: ' + e.message + ' (line ' + e.lineno + ')';
                     }
-            }
-            T = {};
-            T.grassTop = tx(function(g) {
-                fl(g, ['#69c94e', '#5fbd45', '#54b03c', '#74d25a']);
-            });
-            T.dirt = tx(function(g) {
-                fl(g, ['#9b7653', '#8a684a', '#a37e5b', '#7d5d42']);
-            });
-            T.grassSide = tx(function(g) {
-                fl(g, ['#9b7653', '#8a684a', '#a37e5b']);
-                for (var x = 0; x < 16; x++) {
-                    var h = 3 + (Math.random() * 2 | 0);
-                    for (var y = 0; y < h; y++) {
-                        g.fillStyle = rn(['#69c94e', '#5fbd45']);
-                        g.fillRect(x, y, 1, 1);
-                    }
+                });
+
+                function $id(i) {
+                    return document.getElementById(i);
                 }
-            });
-            T.stone = tx(function(g) {
-                fl(g, ['#8f8f8f', '#9a9a9a', '#7e7e7e', '#a5a5a5']);
-            });
-            T.plank = tx(function(g) {
-                fl(g, ['#b08e5a', '#a8854f', '#b99a66']);
-                g.fillStyle = 'rgba(0,0,0,.18)';
-                for (var y = 3; y < 16; y += 4) g.fillRect(0, y, 16, 1);
-            });
-            T.sand = tx(function(g) {
-                fl(g, ['#e7dca0', '#ded294', '#efe4ac']);
-            });
-            T.log = tx(function(g) {
-                fl(g, ['#6b4f2e', '#7a5a35', '#5d4427']);
-            });
-            T.logTop = tx(function(g) {
-                fl(g, ['#b09060', '#a5865a']);
-                g.fillStyle = '#7a5a35';
-                g.fillRect(2, 2, 12, 12);
-                g.fillStyle = '#c4a575';
-                g.fillRect(4, 4, 8, 8);
-            });
-            T.leaves = tx(function(g) {
-                fl(g, ['#3e7a24', '#468a2a', '#357020', '#509731']);
-            });
-            T.ice = tx(function(g) {
-                fl(g, ['#aee2f7', '#a3dcf4', '#bfe9fb']);
-                g.fillStyle = 'rgba(255,255,255,.5)';
-                g.fillRect(2, 3, 5, 1);
-                g.fillRect(9, 9, 4, 1);
-            });
-            T.slime = tx(function(g) {
-                fl(g, ['#7bd94a', '#6ccf3d', '#8be35c']);
-                g.fillStyle = '#3f8f1e';
-                for (var i = 0; i < 6; i++) g.fillRect(Math.random() * 16 | 0, Math.random() * 16 | 0, 2, 2);
-            });
-            T.brk = tx(function(g) {
-                fl(g, ['#d8c07a', '#cdb46f', '#e0c886']);
-                g.fillStyle = '#6b5a30';
-                g.fillRect(2, 3, 7, 1);
-                g.fillRect(8, 4, 1, 4);
-                g.fillRect(4, 8, 6, 1);
-                g.fillRect(11, 9, 3, 1);
-            });
-            T.mov = tx(function(g) {
-                fl(g, ['#9aa3b5', '#8f98aa', '#a5aec0']);
-                g.fillStyle = 'rgba(30,40,60,.5)';
-                g.fillRect(0, 7, 16, 1);
-                g.fillRect(7, 0, 1, 7);
-                g.fillRect(3, 8, 1, 7);
-                g.fillRect(11, 8, 1, 7);
-            });
-            T.gold = tx(function(g) {
-                fl(g, ['#f7d94c', '#eec83a', '#ffe36a']);
-            });
-
-            function M(t) {
-                return new THREE.MeshLambertMaterial({
-                    map: t
-                });
-            }
-            mats = {
-                grass: [M(T.grassSide), M(T.grassSide), M(T.grassTop), M(T.dirt), M(T.grassSide), M(T.grassSide)],
-                dirt: M(T.dirt),
-                stone: M(T.stone),
-                plank: M(T.plank),
-                sand: M(T.sand),
-                log: [M(T.log), M(T.log), M(T.logTop), M(T.logTop), M(T.log), M(T.log)],
-                leaves: M(T.leaves),
-                gold: M(T.gold),
-                ice: new THREE.MeshLambertMaterial({
-                    map: T.ice,
-                    emissive: 0x10303c
-                }),
-                slime: new THREE.MeshLambertMaterial({
-                    map: T.slime,
-                    emissive: 0x143a0c
-                }),
-                brk: M(T.brk),
-                mov: M(T.mov)
-            };
-        }
-
-        function makeCharacter() {
-            function tx(p) {
-                var c = document.createElement('canvas');
-                c.width = c.height = 16;
-                p(c.getContext('2d'));
-                var t = new THREE.CanvasTexture(c);
-                t.magFilter = t.minFilter = THREE.NearestFilter;
-                return t;
-            }
-
-            function fl(g, c) {
-                for (var y = 0; y < 16; y++)
-                    for (var x = 0; x < 16; x++) {
-                        g.fillStyle = c[Math.random() * c.length | 0];
-                        g.fillRect(x, y, 1, 1);
-                    }
-            }
-
-            function M(t) {
-                return new THREE.MeshLambertMaterial({
-                    map: t
-                });
-            }
-            var g = new THREE.Group();
-            var sk = M(tx(function(q) {
-                fl(q, ['#e8b07a', '#dfa76e', '#eec08a']);
-            }));
-            var hr = M(tx(function(q) {
-                fl(q, ['#4a2f1b', '#3f2817']);
-            }));
-            var fc = tx(function(q) {
-                fl(q, ['#e8b07a', '#dfa76e']);
-                q.fillStyle = '#3f2817';
-                q.fillRect(0, 0, 16, 4);
-                q.fillStyle = '#fff';
-                q.fillRect(3, 8, 3, 2);
-                q.fillRect(10, 8, 3, 2);
-                q.fillStyle = '#4a3f8f';
-                q.fillRect(5, 8, 1, 2);
-                q.fillRect(10, 8, 1, 2);
-                q.fillStyle = '#a8674b';
-                q.fillRect(6, 12, 4, 1);
-            });
-            var sh = M(tx(function(q) {
-                fl(q, ['#2fa8a0', '#2a9a92', '#36b5ab']);
-            }));
-            var pn = M(tx(function(q) {
-                fl(q, ['#3b55c4', '#354db5', '#415dd0']);
-            }));
-            var box = new THREE.BoxGeometry(1, 1, 1);
-            var hd = new THREE.Mesh(box, [sk, sk, hr, sk, new THREE.MeshLambertMaterial({
-                map: fc
-            }), sk]);
-            hd.scale.set(.5, .5, .5);
-            hd.position.y = 1.58;
-            g.add(hd);
-            var bd = new THREE.Mesh(box, sh);
-            bd.scale.set(.5, .6, .28);
-            bd.position.y = 1.03;
-            g.add(bd);
-
-            function lm(mt, w, h, px, py) {
-                var pv = new THREE.Group();
-                pv.position.set(px, py, 0);
-                var m = new THREE.Mesh(box, mt);
-                m.scale.set(w, h, w);
-                m.position.y = -h / 2;
-                pv.add(m);
-                g.add(pv);
-                return pv;
-            }
-            CP.ll = lm(pn, .24, .73, -.13, .73);
-            CP.lr = lm(pn, .24, .73, .13, .73);
-            CP.al = lm(sh, .2, .66, -.36, 1.28);
-            CP.ar = lm(sh, .2, .66, .36, 1.28);
-            g.traverse(function(o) {
-                if (o.isMesh) o.castShadow = true;
-            });
-            scene.add(g);
-            PM = g;
-        }
-
-        function addBlock(x, y, z, type, plat, sol) {
-            if (sol === undefined) sol = true;
-            var m = new THREE.Mesh(BG, mats[type]);
-            m.position.set(x + .5, y + .5, z + .5);
-            m.castShadow = m.receiveShadow = true;
-            scene.add(m);
-            var k = x + ',' + y + ',' + z;
-            if (sol) BM.set(k, {
-                plat: plat,
-                type: type,
-                mesh: m
-            });
-            return {
-                mesh: m,
-                key: k
-            };
-        }
-
-        function addCoin(x, y, z, plat) {
-            var g = new THREE.Group();
-            var m = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .09, 14), coinMat);
-            m.rotation.x = Math.PI / 2;
-            m.castShadow = true;
-            g.add(m);
-            g.position.set(x, y, z);
-            scene.add(g);
-            coinsArr.push({
-                mesh: g,
-                x: x,
-                y: y,
-                z: z,
-                plat: plat,
-                ph: Math.random() * 6.28
-            });
-        }
-
-        function addFlag(bx, ny, bz, arr) {
-            var p = new THREE.Mesh(new THREE.BoxGeometry(.09, 2.1, .09), mats.gold);
-            p.position.set(bx + .15, ny + 1.05, bz + .15);
-            p.castShadow = true;
-            var f = new THREE.Mesh(new THREE.PlaneGeometry(.75, .45), new THREE.MeshLambertMaterial({
-                color: 0xe33b3b,
-                side: THREE.DoubleSide
-            }));
-            f.position.set(bx + .57, ny + 1.8, bz + .15);
-            scene.add(p);
-            scene.add(f);
-            arr.push({
-                mesh: p,
-                key: null
-            }, {
-                mesh: f,
-                key: null
-            });
-        }
-
-        function movReg(m) {
-            for (var i = 0; i < m.keys.length; i++) BM.delete(m.keys[i]);
-            m.keys = [];
-            for (var j = 0; j < m.ent.length; j++) {
-                var e = m.ent[j];
-                var k = (m.sx + e.dx) + ',' + m.y + ',' + (m.z + e.dz);
-                BM.set(k, {
-                    plat: m.plat,
-                    type: 'mov',
-                    mesh: null
-                });
-                m.keys.push(k);
-            }
-        }
-
-        function genPlat(i) {
-            var t = Math.min(i / 28, 1),
-                pv = plats[plats.length - 1];
-            var sp = null;
-            if (i >= 8 && Math.random() < .12 + .08 * t) sp = 'moving';
-            else if (i >= 6) {
-                var r = Math.random();
-                if (r < .12) sp = 'ice';
-                else if (r < .23) sp = 'slime';
-                else if (r < .33) sp = 'break';
-            }
-            var dy = 0;
-            if (i >= 3) {
-                var r2 = Math.random(),
-                    dp = .3 + .25 * t;
-                if (sp === 'moving') dy = Math.random() < .5 ? 0 : -1;
-                else if (r2 < .15) dy = 1;
-                else if (r2 < .15 + dp) dy = -(1 + (Math.random() * (1 + Math.round(2 * t)) | 0));
-                else dy = 0;
-            }
-            var ny = Math.max(5, Math.min(22, pv.y + dy));
-            dy = ny - pv.y;
-            var mg = sp === 'moving' ? 2 : dy === 1 ? 1 : dy === 0 ? (t < .4 ? 2 : 3) : dy === -1 ? 3 : 4;
-            var gap = Math.max(1, Math.round(1 + Math.random() * (mg - 1) * (.35 + .65 * t)));
-            var w = Math.max(1, Math.round(2.7 - t * 1.5 - Math.random() * .7)),
-                d = Math.random() < .5 * t ? 1 : 2;
-            if (sp === 'ice') {
-                w = Math.max(2, w);
-                d = 2;
-            }
-            if (sp === 'break') d = Math.max(2, d);
-            var x = Math.max(-8, Math.min(8, pv.x + Math.round((Math.random() - .5) * (1 + 2 * t)))),
-                z = pv.z + pv.d + gap;
-            var tm = {
-                ice: 'ice',
-                slime: 'slime',
-                break: 'brk',
-                moving: 'mov'
-            };
-            var type = sp ? tm[sp] : ['grass', 'grass', 'stone', 'plank', 'sand', 'log'][Math.random() * 6 | 0];
-            var ms2 = [],
-                mv = null;
-            if (sp === 'moving') {
-                w = 2;
-                mv = {
-                    plat: i,
-                    y: ny,
-                    z: z,
-                    w: w,
-                    d: d,
-                    bx: x,
-                    cx: x,
-                    sx: x,
-                    ph: Math.random() * 6.28,
-                    spd: .8 + Math.random() * .7 + t * .7,
-                    amp: 1 + Math.random() * .6 + t * .4,
-                    ent: [],
-                    meshes: [],
-                    keys: []
+                var el = {
+                    device: $id('devicePanel'),
+                    menu: $id('menuPanel'),
+                    help: $id('helpPanel'),
+                    pause: $id('pausePanel'),
+                    dead: $id('deadPanel'),
+                    hud: $id('hud'),
+                    tz: $id('touchZone'),
+                    jb: $id('joyBase'),
+                    jk: $id('joyKnob'),
+                    jump: $id('jumpBtn'),
+                    mb: $id('menuBest'),
+                    mc: $id('menuCoins'),
+                    ht: $id('helpText'),
+                    ds: $id('deadScore'),
+                    db: $id('deadBest'),
+                    dn: $id('deadNew'),
+                    cpb: $id('btnCP'),
+                    sc: $id('scoreChip'),
+                    cc: $id('coinChip'),
+                    bc: $id('bestChip'),
+                    pc: $id('powChip'),
+                    snd: $id('btnSound'),
+                    mSel: $id('musicSelect'),
+                    np: $id('nowPlaying'),
+                    mVol: $id('musicVol'),
+                    vLbl: $id('volLabel')
                 };
-                for (var a = 0; a < w; a++)
-                    for (var b = 0; b < d; b++) {
-                        var m = new THREE.Mesh(BG, mats.mov);
-                        m.castShadow = m.receiveShadow = true;
-                        m.position.set(x + a + .5, ny + .5, z + b + .5);
-                        scene.add(m);
-                        mv.ent.push({
-                            dx: a,
-                            dz: b
+
+                var state = 'device',
+                    touchMode = false,
+                    thirdPerson = true,
+                    score = 0,
+                    best = 0,
+                    coinsTotal = 0,
+                    unlocked = false,
+                    runStartBest = 0,
+                    shieldCharges = 0;
+                var soundOn = true;
+                try {
+                    soundOn = localStorage.getItem('pk_sound') !== '0';
+                } catch (e) {}
+                var checkpoint = null;
+
+                function toFa(n) {
+                    return String(n).replace(/\d/g, function(d) {
+                        return '۰۱۲۳۴۵۶۷۸۹' [d];
+                    });
+                }
+
+                function sh(e) {
+                    if (e) e.classList.remove('hidden');
+                }
+
+                function hi(e) {
+                    if (e) e.classList.add('hidden');
+                }
+
+                function hideAll() {
+                    hi(el.device);
+                    hi(el.menu);
+                    hi(el.help);
+                    hi(el.pause);
+                    hi(el.dead);
+                }
+
+                function openPanel(p) {
+                    hideAll();
+                    sh(p);
+                }
+                var toastT = null;
+
+                function toast(m) {
+                    var t = $id('toast');
+                    t.textContent = m;
+                    t.classList.add('on');
+                    clearTimeout(toastT);
+                    toastT = setTimeout(function() {
+                        t.classList.remove('on');
+                    }, 2300);
+                }
+
+                var SKEY = 'pas_save';
+
+                function saveData() {
+                    try {
+                        var d = JSON.stringify({
+                            best: best,
+                            coins: coinsTotal,
+                            unlocked: unlocked
                         });
-                        mv.meshes.push(m);
-                    }
-                movers.push(mv);
-                movReg(mv);
-            } else {
-                for (var a = 0; a < w; a++)
-                    for (var b = 0; b < d; b++) {
-                        ms2.push(addBlock(x + a, ny, z + b, type, i));
-                        ms2.push(addBlock(x + a, ny - 1, z + b, type === 'grass' ? 'dirt' : 'stone', i));
-                    }
-                if (Math.random() < .65) addCoin(x + (Math.random() * w | 0) + .5, ny + 1.25, z + (Math.random() * d | 0) + .5, i);
-                if (i % 10 === 0) addFlag(x, ny, z, ms2);
-            }
-            plats.push({
-                index: i,
-                x: x,
-                y: ny,
-                z: z,
-                w: w,
-                d: d,
-                meshes: ms2,
-                mover: mv
-            });
-            npi = i + 1;
-        }
-
-        function buildStart() {
-            var y0 = 10,
-                ms2 = [];
-            for (var x = -3; x <= 3; x++)
-                for (var z = 0; z <= 6; z++) {
-                    ms2.push(addBlock(x, y0, z, 'grass', 0));
-                    ms2.push(addBlock(x, y0 - 1, z, 'dirt', 0));
+                        localStorage.setItem(SKEY, d);
+                        document.cookie = SKEY + '=' + encodeURIComponent(d) + ';max-age=31536000;path=/;SameSite=Lax';
+                    } catch (e) {}
                 }
-            plats.push({
-                index: 0,
-                x: -3,
-                y: y0,
-                z: 0,
-                w: 7,
-                d: 7,
-                meshes: ms2,
-                mover: null
-            });
-            var px2 = [-3, 3],
-                pz2 = [0, 2];
-            for (var pi = 0; pi < 2; pi++)
-                for (var qi = 0; qi < 2; qi++)
-                    for (var h = 1; h <= 3; h++) ms2.push(addBlock(px2[pi], y0 + h, pz2[qi], 'stone', 0));
-            for (var x = -3; x <= 3; x++)
-                for (var z = 0; z <= 2; z++) ms2.push(addBlock(x, y0 + 4, z, 'stone', 0));
-            ms2.push(addBlock(0, y0 + 5, 1, 'gold', 0));
-        }
 
-        function removePlat(p) {
-            for (var i = 0; i < p.meshes.length; i++) {
-                var e = p.meshes[i];
-                scene.remove(e.mesh);
-                if (e.key) {
-                    BM.delete(e.key);
-                    breakT.delete(e.key);
-                }
-            }
-            if (p.mover) {
-                for (var j = 0; j < p.mover.keys.length; j++) BM.delete(p.mover.keys[j]);
-                for (var k2 = 0; k2 < p.mover.meshes.length; k2++) scene.remove(p.mover.meshes[k2]);
-                var ix = movers.indexOf(p.mover);
-                if (ix >= 0) movers.splice(ix, 1);
-            }
-            coinsArr = coinsArr.filter(function(c) {
-                if (c.plat === p.index) {
-                    scene.remove(c.mesh);
-                    return false;
-                }
-                return true;
-            });
-        }
-
-        function ensureWorld(cur) {
-            while (npi < cur + 8) genPlat(npi);
-            var kf = Math.min(cur - 4, checkpoint ? checkpoint.plat : cur - 4);
-            while (plats.length && plats[0].index < kf) removePlat(plats.shift());
-        }
-
-        function resetWorld() {
-            for (var i = 0; i < plats.length; i++) removePlat(plats[i]);
-            plats = [];
-            movers = [];
-            coinsArr = [];
-            falling = [];
-            breakT.clear();
-            BM.clear();
-            npi = 1;
-            buildStart();
-            for (var j = 1; j < 8; j++) genPlat(j);
-        }
-
-        var PW = .3,
-            PH = 1.8,
-            GV = 28,
-            JV = 8.4,
-            SP = 5.6;
-
-        function collides(px, py, pz) {
-            var x0 = Math.floor(px - PW),
-                x1 = Math.floor(px + PW),
-                y0 = Math.floor(py),
-                y1 = Math.floor(py + PH - .001),
-                z0 = Math.floor(pz - PW),
-                z1 = Math.floor(pz + PW);
-            for (var x = x0; x <= x1; x++)
-                for (var y = y0; y <= y1; y++)
-                    for (var z = z0; z <= z1; z++)
-                        if (BM.has(x + ',' + y + ',' + z)) return true;
-            return false;
-        }
-
-        function probe(py) {
-            var y = Math.floor(py);
-            for (var a = 0; a < 2; a++)
-                for (var b = 0; b < 2; b++) {
-                    var ox = a ? -0.25 : 0.25,
-                        oz = b ? -0.25 : 0.25;
-                    var k = Math.floor(P.pos.x + ox) + ',' + y + ',' + Math.floor(P.pos.z + oz);
-                    var v = BM.get(k);
-                    if (v) return v;
-                }
-            return null;
-        }
-
-        function tryJump() {
-            if (state !== 'playing') return;
-            if (P.og) {
-                P.vel.y = JV;
-                P.og = false;
-                jumpCount = 0;
-                sfx('j');
-            } else if (unlocked && jumpCount < 1) {
-                P.vel.y = JV * .95;
-                jumpCount = 1;
-                sfx('dj');
-            } else jumpBuf = .12;
-        }
-
-        function updMovers(dt) {
-            for (var i = 0; i < movers.length; i++) {
-                var m = movers[i];
-                m.ph += dt * m.spd;
-                var pc = m.cx;
-                m.cx = m.bx + Math.sin(m.ph) * m.amp;
-                var ns = Math.round(m.cx);
-                if (ns !== m.sx) {
-                    m.sx = ns;
-                    movReg(m);
-                }
-                for (var k = 0; k < m.meshes.length; k++) m.meshes[k].position.x = m.cx + m.ent[k].dx + .5;
-                if (P.og) {
-                    var pu = probe(P.pos.y - .05);
-                    if (pu && pu.plat === m.plat) P.pos.x += m.cx - pc;
-                }
-            }
-        }
-
-        function collapseB(key) {
-            var info = BM.get(key);
-            if (!info || !info.mesh) return;
-            BM.delete(key);
-            breakT.delete(key);
-            falling.push({
-                mesh: info.mesh,
-                vy: 0,
-                t: 0,
-                rx: (Math.random() - .5) * 4,
-                rz: (Math.random() - .5) * 4
-            });
-            sfx('br');
-        }
-
-        function collectC(i) {
-            var c = coinsArr[i];
-            scene.remove(c.mesh);
-            coinsArr.splice(i, 1);
-            coinsTotal++;
-            sfx('co');
-            saveData();
-            if (!unlocked && coinsTotal >= 30) {
-                unlocked = true;
-                shieldCharges = 1;
-                sfx('ul');
-                saveData();
-                toast('🎉 ۳۰ سکه! پرش دوبل و سپر فعال شد!');
-            }
-            updHUD();
-        }
-
-        function physStep(dt) {
-            updMovers(dt);
-            var gi = P.og ? probe(P.pos.y - .05) : null,
-                icy = gi && gi.type === 'ice';
-            var ix = inp.x,
-                iz = inp.y,
-                l = Math.hypot(ix, iz);
-            if (l > 1) {
-                ix /= l;
-                iz /= l;
-            }
-            var sy = Math.sin(yaw),
-                cy = Math.cos(yaw),
-                mx = -sy * iz + cy * ix,
-                mz = -cy * iz - sy * ix;
-            var ac = P.og ? (icy ? 7 : 70) : 25;
-            P.vel.x += (mx * SP - P.vel.x) * Math.min(1, ac * dt);
-            P.vel.z += (mz * SP - P.vel.z) * Math.min(1, ac * dt);
-            if (jumpBuf > 0 && P.og) {
-                P.vel.y = JV;
-                P.og = false;
-                jumpCount = 0;
-                jumpBuf = 0;
-                sfx('j');
-            }
-            jumpBuf -= dt;
-            P.vel.y = Math.max(P.vel.y - GV * dt, -40);
-            var nx = P.pos.x + P.vel.x * dt;
-            if (collides(nx, P.pos.y, P.pos.z)) P.vel.x = 0;
-            else P.pos.x = nx;
-            var nz = P.pos.z + P.vel.z * dt;
-            if (collides(P.pos.x, P.pos.y, nz)) P.vel.z = 0;
-            else P.pos.z = nz;
-            var ny = P.pos.y + P.vel.y * dt;
-            if (collides(P.pos.x, ny, P.pos.z)) {
-                if (P.vel.y < 0) {
-                    var hit = probe(ny);
-                    if (hit && hit.type === 'slime' && P.vel.y < -3) {
-                        P.vel.y = 10.5;
-                        jumpCount = 0;
-                        shakeAmt = Math.max(shakeAmt, .2);
-                        sfx('bo');
-                    } else {
-                        if (P.vel.y < -12) sfx('la');
-                        if (P.vel.y < -9) shakeAmt = Math.max(shakeAmt, Math.min(.4, (-P.vel.y - 8) * .05));
-                        var sn = Math.floor(ny) + 1;
-                        if (!collides(P.pos.x, sn, P.pos.z)) P.pos.y = sn;
-                        P.og = true;
-                        jumpCount = 0;
-                    }
-                }
-                if (P.og) P.vel.y = 0;
-                else P.vel.y = Math.max(P.vel.y, 0);
-            } else {
-                P.pos.y = ny;
-                P.og = false;
-            }
-            if (P.og) {
-                var gb = probe(P.pos.y - .05);
-                if (gb && gb.type === 'brk' && !breakT.has(gb.key)) {
-                    breakT.set(gb.key, 1);
-                    sfx('cr');
-                }
-                if (gb && gb.plat !== lastPlat) {
-                    lastPlat = gb.plat;
-                    if (gb.plat > score) {
-                        score = gb.plat;
-                        updHUD();
-                        sfx('sc');
-                        if (score > best) {
-                            best = score;
-                            saveData();
+                function loadData() {
+                    try {
+                        var d = localStorage.getItem(SKEY);
+                        if (!d) {
+                            var m = document.cookie.match(/(?:^|; )pas_save=([^;]*)/);
+                            if (m) d = decodeURIComponent(m[1]);
                         }
-                        if (score % 10 === 0) {
-                            var pl = null;
-                            for (var i = 0; i < plats.length; i++)
-                                if (plats[i].index === score) {
-                                    pl = plats[i];
-                                    break;
-                                }
-                            if (pl) {
-                                checkpoint = {
-                                    plat: score,
-                                    score: score,
-                                    pos: new THREE.Vector3(pl.x + pl.w / 2, pl.y + 1.01, pl.z + pl.d / 2)
-                                };
-                                sfx('cp');
-                                toast('🚩 چک‌پوینت!');
+                        if (d) {
+                            var o = JSON.parse(d);
+                            best = o.best || 0;
+                            coinsTotal = o.coins || 0;
+                            unlocked = !!o.unlocked;
+                        }
+                    } catch (e) {}
+                    if (coinsTotal >= 30) unlocked = true;
+                }
+                loadData();
+
+                /* ============================================
+                   سیستم موزیک ماینکرافت
+                   ============================================ */
+                var MUSIC_BASE = 'https://raw.githubusercontent.com/C418-Music/Minecraft-Music/main/';
+                // نگاشت کلید → مسیر فایل واقعی
+                var MUSIC_MAP = {
+                    calm1: 'Volume Alpha/calm/calm1.ogg',
+                    calm2: 'Volume Alpha/calm/calm2.ogg',
+                    calm3: 'Volume Alpha/calm/calm3.ogg',
+                    hal1: 'Volume Alpha/hal/hal1.ogg',
+                    hal2: 'Volume Alpha/hal/hal2.ogg',
+                    hal3: 'Volume Alpha/hal/hal3.ogg',
+                    hal4: 'Volume Alpha/hal/hal4.ogg',
+                    nuance1: 'Volume Alpha/nuance/nuance1.ogg',
+                    nuance2: 'Volume Alpha/nuance/nuance2.ogg',
+                    piano1: 'Volume Alpha/piano/piano1.ogg',
+                    piano2: 'Volume Alpha/piano/piano2.ogg',
+                    piano3: 'Volume Alpha/piano/piano3.ogg',
+                    alpha: 'Volume Beta/alpha.ogg',
+                    beta: 'Volume Beta/beta.ogg',
+                    biome_fest: 'Volume Beta/biome_fest.ogg',
+                    blindness: 'Volume Beta/blindness.ogg',
+                    chirp: 'Volume Beta/chirp.ogg',
+                    far: 'Volume Beta/far.ogg',
+                    mall: 'Volume Beta/mall.ogg',
+                    mellohi: 'Volume Beta/mellohi.ogg',
+                    stal: 'Volume Beta/stal.ogg',
+                    strad: 'Volume Beta/strad.ogg',
+                    ward: 'Volume Beta/ward.ogg',
+                    wait: 'Volume Beta/wait.ogg',
+                    wilt: 'Volume Beta/wilt.ogg',
+                    ki: 'Volume Beta/ki.ogg',
+                    mutation: 'Volume Beta/mutation.ogg',
+                    moog_city_2: 'Volume Beta/moog_city_2.ogg',
+                    concrete_halls: 'Volume Beta/concrete_halls.ogg',
+                    dead_voxel: 'Volume Beta/dead_voxel.ogg',
+                    warmth: 'Volume Beta/warmth.ogg',
+                    floating_trees: 'Volume Beta/floating_trees.ogg',
+                    aria_math: 'Volume Beta/aria_math.ogg',
+                    taswell: 'Volume Beta/taswell.ogg',
+                    the_end: 'Volume Beta/the_end.ogg',
+                    dreiton: 'Volume Beta/dreiton.ogg',
+                    pigstep: 'Nether Update/pigstep.ogg',
+                    otherside: 'Caves & Cliffs/otherside.ogg',
+                    rubedo: 'Nether Update/rubedo.ogg',
+                    so_below: 'Nether Update/so_below.ogg',
+                    firebugs: 'Nether Update/firebugs.ogg',
+                    labyrinthine: 'Nether Update/labyrinthine.ogg',
+                    ballad_of_the_cats: 'Nether Update/ballad_of_the_cats.ogg',
+                    comforting_memories: 'Trails & Tales/comforting_memories.ogg',
+                    floating_dream: 'Trails & Tales/floating_dream.ogg',
+                    one_more_day: 'Trails & Tales/one_more_day.ogg',
+                    stand_tall: 'Trails & Tales/stand_tall.ogg',
+                    left_to_bloom: 'Trails & Tales/left_to_bloom.ogg',
+                    ancestry: 'Trails & Tales/ancestry.ogg',
+                    wending: 'Trails & Tales/wending.ogg',
+                    infinite_amethyst: 'Trails & Tales/infinite_amethyst.ogg',
+                    aerie: 'Trails & Tales/aerie.ogg',
+                    relic: 'Trails & Tales/relic.ogg',
+                    creator: 'Trails & Tales/creator.ogg',
+                    precipice: '2024/precipice.ogg',
+                    echo_in_the_wind: '2024/echo_in_the_wind.ogg',
+                    broken_clocks: '2024/broken_clocks.ogg',
+                    featherfall: '2024/featherfall.ogg',
+                    watcher: '2024/watcher.ogg',
+                    puzzlebox: '2024/puzzlebox.ogg',
+                    doomsday: '2024/doomsday.ogg'
+                };
+
+                var mcAudio = null,
+                    currentTrack = 'procedural',
+                    musicVolume = 0.4;
+                try {
+                    var savedTrack = localStorage.getItem('pk_music');
+                    if (savedTrack) currentTrack = savedTrack;
+                    var savedVol = localStorage.getItem('pk_mvol');
+                    if (savedVol) musicVolume = parseFloat(savedVol);
+                } catch (e) {}
+
+                function stopMusic() {
+                    if (mcAudio) {
+                        mcAudio.pause();
+                        mcAudio.src = '';
+                        mcAudio = null;
+                    }
+                    clearTimeout(musicTimer);
+                }
+
+                function playMCTrack(key) {
+                    stopMusic();
+                    if (key === 'none') {
+                        el.np.textContent = '';
+                        return;
+                    }
+                    if (key === 'procedural') {
+                        startProcedural();
+                        el.np.textContent = '🎹 ملودی آرامش‌بخش';
+                        return;
+                    }
+                    var path = MUSIC_MAP[key];
+                    if (!path) {
+                        el.np.textContent = '❌ آهنگ یافت نشد';
+                        return;
+                    }
+                    mcAudio = new Audio(MUSIC_BASE + path);
+                    mcAudio.volume = musicVolume;
+                    mcAudio.loop = true;
+                    mcAudio.onended = function() {
+                        if (currentTrack === key && state !== 'device') mcAudio.play().catch(function() {});
+                    };
+                    mcAudio.onerror = function() {
+                        el.np.textContent = '❌ خطا در بارگذاری';
+                        toast('آهنگ بارگذاری نشد');
+                    };
+                    mcAudio.play().then(function() {
+                        var opt = el.mSel.querySelector('option[value="' + key + '"]');
+                        el.np.textContent = '🎵 ' + opt.textContent;
+                    }).catch(function() {
+                        el.np.textContent = '⚠ کلیک کنید تا پخش شود';
+                    });
+                }
+
+                function setMusic(key) {
+                    currentTrack = key;
+                    try {
+                        localStorage.setItem('pk_music', key);
+                    } catch (e) {}
+                    el.mSel.value = key;
+                    if (soundOn) playMCTrack(key);
+                    else stopMusic();
+                }
+
+                // مقداردهی اولیه select و volume
+                el.mSel.value = currentTrack;
+                el.mVol.value = Math.round(musicVolume * 100);
+                el.vLbl.textContent = Math.round(musicVolume * 100) + '%';
+
+                el.mSel.addEventListener('change', function() {
+                    setMusic(this.value);
+                });
+                el.mVol.addEventListener('input', function() {
+                    musicVolume = this.value / 100;
+                    el.vLbl.textContent = this.value + '%';
+                    if (mcAudio) mcAudio.volume = musicVolume;
+                    try {
+                        localStorage.setItem('pk_mvol', String(musicVolume));
+                    } catch (e) {}
+                });
+
+                /* ============================================
+                   Three.js و بازی
+                   ============================================ */
+                var R = null,
+                    cv = null,
+                    scene = null,
+                    camera = null,
+                    skyMesh = null,
+                    sun = null,
+                    sunSpr = null,
+                    clouds = [],
+                    PM = null,
+                    CP = {};
+                var BM = null,
+                    plats = [],
+                    movers = [],
+                    coinsArr = [],
+                    falling = [],
+                    npi = 1,
+                    breakT = null,
+                    coinMat = null;
+                var BG = null,
+                    mats = null,
+                    T = null;
+                var P = {
+                    pos: null,
+                    vel: null,
+                    og: false
+                };
+                var yaw = Math.PI,
+                    pit = -.05,
+                    lastPlat = 0,
+                    jumpBuf = 0,
+                    jumpCount = 0,
+                    shakeAmt = 0,
+                    walkT = 0;
+                var inp = {
+                        x: 0,
+                        y: 0
+                    },
+                    keys = {};
+                var joy = {
+                        id: null,
+                        bx: 0,
+                        by: 0
+                    },
+                    look = {
+                        id: null,
+                        lx: 0,
+                        ly: 0
+                    };
+                var lastT = performance.now(),
+                    accum = 0,
+                    menuTime = 0;
+                var actx = null,
+                    master = null,
+                    delayN = null,
+                    audioStarted = false,
+                    musicTimer = null;
+                var gameReady = false;
+
+                function initThree() {
+                    if (!window.THREE) throw new Error('Three.js load nashod');
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x87ceeb);
+                    scene.fog = new THREE.Fog(0xd6ecff, 45, 120);
+                    camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, .1, 1200);
+                    camera.rotation.order = 'YXZ';
+                    R = new THREE.WebGLRenderer({
+                        antialias: true
+                    });
+                    R.setPixelRatio(Math.min(devicePixelRatio, 2));
+                    R.setSize(innerWidth, innerHeight);
+                    R.shadowMap.enabled = true;
+                    R.shadowMap.type = THREE.PCFSoftShadowMap;
+                    $id('game').appendChild(R.domElement);
+                    cv = R.domElement;
+                    scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x8a7f5a, .9));
+                    sun = new THREE.DirectionalLight(0xfff4d6, 1);
+                    sun.castShadow = true;
+                    sun.shadow.mapSize.set(1024, 1024);
+                    sun.shadow.bias = -.001;
+                    var s2 = sun.shadow.camera;
+                    s2.left = s2.bottom = -32;
+                    s2.right = s2.top = 32;
+                    s2.far = 300;
+                    scene.add(sun);
+                    scene.add(sun.target);
+                    skyMesh = new THREE.Mesh(new THREE.SphereGeometry(600, 16, 12), new THREE.ShaderMaterial({
+                        side: THREE.BackSide,
+                        depthWrite: false,
+                        vertexShader: 'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+                        fragmentShader: 'varying vec3 v;void main(){float h=normalize(v).y;vec3 c=mix(vec3(.88,.95,1),vec3(.62,.82,1),smoothstep(-.05,.25,h));c=mix(c,vec3(.33,.6,.98),smoothstep(.25,.75,h));gl_FragColor=vec4(c,1.);}'
+                    }));
+                    scene.add(skyMesh);
+                    var sc2 = document.createElement('canvas');
+                    sc2.width = sc2.height = 64;
+                    var g2 = sc2.getContext('2d');
+                    var gr = g2.createRadialGradient(32, 32, 4, 32, 32, 30);
+                    gr.addColorStop(0, 'rgba(255,255,235,1)');
+                    gr.addColorStop(.35, 'rgba(255,240,180,.9)');
+                    gr.addColorStop(1, 'rgba(255,240,180,0)');
+                    g2.fillStyle = gr;
+                    g2.fillRect(0, 0, 64, 64);
+                    sunSpr = new THREE.Sprite(new THREE.SpriteMaterial({
+                        fog: false,
+                        transparent: true,
+                        map: new THREE.CanvasTexture(sc2)
+                    }));
+                    sunSpr.scale.set(90, 90, 1);
+                    scene.add(sunSpr);
+                    var cc = document.createElement('canvas');
+                    cc.width = cc.height = 128;
+                    var cg = cc.getContext('2d');
+                    cg.fillStyle = 'rgba(255,255,255,.95)';
+                    for (var i = 0; i < 14; i++) {
+                        cg.beginPath();
+                        cg.ellipse(20 + Math.random() * 88, 40 + Math.random() * 48, 14 + Math.random() * 18, 8 + Math.random() * 10, 0, 0, 6.28);
+                        cg.fill();
+                    }
+                    var cloudTex = new THREE.CanvasTexture(cc);
+                    for (var i = 0; i < 12; i++) {
+                        var m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
+                            map: cloudTex,
+                            transparent: true,
+                            opacity: .85,
+                            depthWrite: false,
+                            fog: false,
+                            side: THREE.DoubleSide
+                        }));
+                        var s = 18 + Math.random() * 26;
+                        m.scale.set(s, s * .55, 1);
+                        m.rotation.x = -Math.PI / 2;
+                        m.position.set((Math.random() - .5) * 320, 34 + Math.random() * 14, Math.random() * 320 - 40);
+                        scene.add(m);
+                        clouds.push(m);
+                    }
+                    makeTextures();
+                    makeCharacter();
+                    BM = new Map();
+                    breakT = new Map();
+                    BG = new THREE.BoxGeometry(1, 1, 1);
+                    coinMat = new THREE.MeshLambertMaterial({
+                        color: 0xffd23e,
+                        emissive: 0x7a5a00
+                    });
+                    P.pos = new THREE.Vector3(.5, 12.2, 4.5);
+                    P.vel = new THREE.Vector3();
+                    gameReady = true;
+                }
+
+                function makeTextures() {
+                    function tx(p) {
+                        var c = document.createElement('canvas');
+                        c.width = c.height = 16;
+                        p(c.getContext('2d'));
+                        var t = new THREE.CanvasTexture(c);
+                        t.magFilter = t.minFilter = THREE.NearestFilter;
+                        return t;
+                    }
+
+                    function rn(a) {
+                        return a[Math.random() * a.length | 0];
+                    }
+
+                    function fl(g, c) {
+                        for (var y = 0; y < 16; y++)
+                            for (var x = 0; x < 16; x++) {
+                                g.fillStyle = rn(c);
+                                g.fillRect(x, y, 1, 1);
+                            }
+                    }
+                    T = {};
+                    T.grassTop = tx(function(g) {
+                        fl(g, ['#69c94e', '#5fbd45', '#54b03c', '#74d25a']);
+                    });
+                    T.dirt = tx(function(g) {
+                        fl(g, ['#9b7653', '#8a684a', '#a37e5b', '#7d5d42']);
+                    });
+                    T.grassSide = tx(function(g) {
+                        fl(g, ['#9b7653', '#8a684a', '#a37e5b']);
+                        for (var x = 0; x < 16; x++) {
+                            var h = 3 + (Math.random() * 2 | 0);
+                            for (var y = 0; y < h; y++) {
+                                g.fillStyle = rn(['#69c94e', '#5fbd45']);
+                                g.fillRect(x, y, 1, 1);
                             }
                         }
-                        ensureWorld(gb.plat);
+                    });
+                    T.stone = tx(function(g) {
+                        fl(g, ['#8f8f8f', '#9a9a9a', '#7e7e7e', '#a5a5a5']);
+                    });
+                    T.plank = tx(function(g) {
+                        fl(g, ['#b08e5a', '#a8854f', '#b99a66']);
+                        g.fillStyle = 'rgba(0,0,0,.18)';
+                        for (var y = 3; y < 16; y += 4) g.fillRect(0, y, 16, 1);
+                    });
+                    T.sand = tx(function(g) {
+                        fl(g, ['#e7dca0', '#ded294', '#efe4ac']);
+                    });
+                    T.log = tx(function(g) {
+                        fl(g, ['#6b4f2e', '#7a5a35', '#5d4427']);
+                    });
+                    T.logTop = tx(function(g) {
+                        fl(g, ['#b09060', '#a5865a']);
+                        g.fillStyle = '#7a5a35';
+                        g.fillRect(2, 2, 12, 12);
+                        g.fillStyle = '#c4a575';
+                        g.fillRect(4, 4, 8, 8);
+                    });
+                    T.leaves = tx(function(g) {
+                        fl(g, ['#3e7a24', '#468a2a', '#357020', '#509731']);
+                    });
+                    T.ice = tx(function(g) {
+                        fl(g, ['#aee2f7', '#a3dcf4', '#bfe9fb']);
+                        g.fillStyle = 'rgba(255,255,255,.5)';
+                        g.fillRect(2, 3, 5, 1);
+                        g.fillRect(9, 9, 4, 1);
+                    });
+                    T.slime = tx(function(g) {
+                        fl(g, ['#7bd94a', '#6ccf3d', '#8be35c']);
+                        g.fillStyle = '#3f8f1e';
+                        for (var i = 0; i < 6; i++) g.fillRect(Math.random() * 16 | 0, Math.random() * 16 | 0, 2, 2);
+                    });
+                    T.brk = tx(function(g) {
+                        fl(g, ['#d8c07a', '#cdb46f', '#e0c886']);
+                        g.fillStyle = '#6b5a30';
+                        g.fillRect(2, 3, 7, 1);
+                        g.fillRect(8, 4, 1, 4);
+                        g.fillRect(4, 8, 6, 1);
+                        g.fillRect(11, 9, 3, 1);
+                    });
+                    T.mov = tx(function(g) {
+                        fl(g, ['#9aa3b5', '#8f98aa', '#a5aec0']);
+                        g.fillStyle = 'rgba(30,40,60,.5)';
+                        g.fillRect(0, 7, 16, 1);
+                        g.fillRect(7, 0, 1, 7);
+                        g.fillRect(3, 8, 1, 7);
+                        g.fillRect(11, 8, 1, 7);
+                    });
+                    T.gold = tx(function(g) {
+                        fl(g, ['#f7d94c', '#eec83a', '#ffe36a']);
+                    });
+
+                    function M(t) {
+                        return new THREE.MeshLambertMaterial({
+                            map: t
+                        });
+                    }
+                    mats = {
+                        grass: [M(T.grassSide), M(T.grassSide), M(T.grassTop), M(T.dirt), M(T.grassSide), M(T.grassSide)],
+                        dirt: M(T.dirt),
+                        stone: M(T.stone),
+                        plank: M(T.plank),
+                        sand: M(T.sand),
+                        log: [M(T.log), M(T.log), M(T.logTop), M(T.logTop), M(T.log), M(T.log)],
+                        leaves: M(T.leaves),
+                        gold: M(T.gold),
+                        ice: new THREE.MeshLambertMaterial({
+                            map: T.ice,
+                            emissive: 0x10303c
+                        }),
+                        slime: new THREE.MeshLambertMaterial({
+                            map: T.slime,
+                            emissive: 0x143a0c
+                        }),
+                        brk: M(T.brk),
+                        mov: M(T.mov)
+                    };
+                }
+
+                function makeCharacter() {
+                    function tx(p) {
+                        var c = document.createElement('canvas');
+                        c.width = c.height = 16;
+                        p(c.getContext('2d'));
+                        var t = new THREE.CanvasTexture(c);
+                        t.magFilter = t.minFilter = THREE.NearestFilter;
+                        return t;
+                    }
+
+                    function fl(g, c) {
+                        for (var y = 0; y < 16; y++)
+                            for (var x = 0; x < 16; x++) {
+                                g.fillStyle = c[Math.random() * c.length | 0];
+                                g.fillRect(x, y, 1, 1);
+                            }
+                    }
+
+                    function M(t) {
+                        return new THREE.MeshLambertMaterial({
+                            map: t
+                        });
+                    }
+                    var g = new THREE.Group();
+                    var sk = M(tx(function(q) {
+                        fl(q, ['#e8b07a', '#dfa76e', '#eec08a']);
+                    }));
+                    var hr = M(tx(function(q) {
+                        fl(q, ['#4a2f1b', '#3f2817']);
+                    }));
+                    var fc = tx(function(q) {
+                        fl(q, ['#e8b07a', '#dfa76e']);
+                        q.fillStyle = '#3f2817';
+                        q.fillRect(0, 0, 16, 4);
+                        q.fillStyle = '#fff';
+                        q.fillRect(3, 8, 3, 2);
+                        q.fillRect(10, 8, 3, 2);
+                        q.fillStyle = '#4a3f8f';
+                        q.fillRect(5, 8, 1, 2);
+                        q.fillRect(10, 8, 1, 2);
+                        q.fillStyle = '#a8674b';
+                        q.fillRect(6, 12, 4, 1);
+                    });
+                    var sh = M(tx(function(q) {
+                        fl(q, ['#2fa8a0', '#2a9a92', '#36b5ab']);
+                    }));
+                    var pn = M(tx(function(q) {
+                        fl(q, ['#3b55c4', '#354db5', '#415dd0']);
+                    }));
+                    var box = new THREE.BoxGeometry(1, 1, 1);
+                    var hd = new THREE.Mesh(box, [sk, sk, hr, sk, new THREE.MeshLambertMaterial({
+                        map: fc
+                    }), sk]);
+                    hd.scale.set(.5, .5, .5);
+                    hd.position.y = 1.58;
+                    g.add(hd);
+                    var bd = new THREE.Mesh(box, sh);
+                    bd.scale.set(.5, .6, .28);
+                    bd.position.y = 1.03;
+                    g.add(bd);
+
+                    function lm(mt, w, h, px, py) {
+                        var pv = new THREE.Group();
+                        pv.position.set(px, py, 0);
+                        var m = new THREE.Mesh(box, mt);
+                        m.scale.set(w, h, w);
+                        m.position.y = -h / 2;
+                        pv.add(m);
+                        g.add(pv);
+                        return pv;
+                    }
+                    CP.ll = lm(pn, .24, .73, -.13, .73);
+                    CP.lr = lm(pn, .24, .73, .13, .73);
+                    CP.al = lm(sh, .2, .66, -.36, 1.28);
+                    CP.ar = lm(sh, .2, .66, .36, 1.28);
+                    g.traverse(function(o) {
+                        if (o.isMesh) o.castShadow = true;
+                    });
+                    scene.add(g);
+                    PM = g;
+                }
+
+                function addBlock(x, y, z, type, plat, sol) {
+                    if (sol === undefined) sol = true;
+                    var m = new THREE.Mesh(BG, mats[type]);
+                    m.position.set(x + .5, y + .5, z + .5);
+                    m.castShadow = m.receiveShadow = true;
+                    scene.add(m);
+                    var k = x + ',' + y + ',' + z;
+                    if (sol) BM.set(k, {
+                        plat: plat,
+                        type: type,
+                        mesh: m
+                    });
+                    return {
+                        mesh: m,
+                        key: k
+                    };
+                }
+
+                function addCoin(x, y, z, plat) {
+                    var g = new THREE.Group();
+                    var m = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .09, 14), coinMat);
+                    m.rotation.x = Math.PI / 2;
+                    m.castShadow = true;
+                    g.add(m);
+                    g.position.set(x, y, z);
+                    scene.add(g);
+                    coinsArr.push({
+                        mesh: g,
+                        x: x,
+                        y: y,
+                        z: z,
+                        plat: plat,
+                        ph: Math.random() * 6.28
+                    });
+                }
+
+                function addFlag(bx, ny, bz, arr) {
+                    var p = new THREE.Mesh(new THREE.BoxGeometry(.09, 2.1, .09), mats.gold);
+                    p.position.set(bx + .15, ny + 1.05, bz + .15);
+                    p.castShadow = true;
+                    var f = new THREE.Mesh(new THREE.PlaneGeometry(.75, .45), new THREE.MeshLambertMaterial({
+                        color: 0xe33b3b,
+                        side: THREE.DoubleSide
+                    }));
+                    f.position.set(bx + .57, ny + 1.8, bz + .15);
+                    scene.add(p);
+                    scene.add(f);
+                    arr.push({
+                        mesh: p,
+                        key: null
+                    }, {
+                        mesh: f,
+                        key: null
+                    });
+                }
+
+                function movReg(m) {
+                    for (var i = 0; i < m.keys.length; i++) BM.delete(m.keys[i]);
+                    m.keys = [];
+                    for (var j = 0; j < m.ent.length; j++) {
+                        var e = m.ent[j];
+                        var k = (m.sx + e.dx) + ',' + m.y + ',' + (m.z + e.dz);
+                        BM.set(k, {
+                            plat: m.plat,
+                            type: 'mov',
+                            mesh: null
+                        });
+                        m.keys.push(k);
                     }
                 }
-            }
-            var keysArr = Array.from(breakT.keys());
-            for (var bi = 0; bi < keysArr.length; bi++) {
-                var kk = keysArr[bi],
-                    tv = breakT.get(kk),
-                    nv = tv - dt;
-                if (nv <= 0) collapseB(kk);
-                else breakT.set(kk, nv);
-            }
-            for (var ci = coinsArr.length - 1; ci >= 0; ci--) {
-                var c = coinsArr[ci];
-                var dx = c.x - P.pos.x,
-                    dy2 = c.y - (P.pos.y + .9),
-                    dz = c.z - P.pos.z;
-                if (dx * dx + dy2 * dy2 + dz * dz < 1.15) collectC(ci);
-            }
-            var my = 1e9;
-            for (var pi = 0; pi < plats.length; pi++)
-                if (plats[pi].y < my) my = plats[pi].y;
-            if (P.pos.y < my - 9) fallOut();
-        }
 
-        /* ===== صدا (SFX + Procedural Music) ===== */
-        function initAudio() {
-            if (!soundOn) return;
-            if (!audioStarted) {
-                audioStarted = true;
-                try {
-                    actx = new(window.AudioContext || window.webkitAudioContext)();
-                    master = actx.createGain();
-                    master.gain.value = .45;
-                    master.connect(actx.destination);
-                    delayN = actx.createDelay();
-                    delayN.delayTime.value = .65;
-                    var fb = actx.createGain();
-                    fb.gain.value = .4;
-                    delayN.connect(fb);
-                    fb.connect(delayN);
-                    var w = actx.createGain();
-                    w.gain.value = .4;
-                    delayN.connect(w);
-                    w.connect(master);
-                    if (currentTrack === 'procedural') startProcedural();
-                    else if (currentTrack !== 'none') playMCTrack(currentTrack);
-                } catch (e) {}
-            }
-            if (actx && actx.state === 'suspended') actx.resume();
-        }
-
-        function padN(f, v) {
-            if (!actx) return;
-            var o = actx.createOscillator(),
-                g = actx.createGain(),
-                l = actx.createOscillator(),
-                lg = actx.createGain();
-            o.type = 'sine';
-            o.frequency.value = f;
-            g.gain.value = v;
-            l.type = 'sine';
-            l.frequency.value = .05 + Math.random() * .05;
-            lg.gain.value = v * .4;
-            l.connect(lg);
-            lg.connect(g.gain);
-            o.connect(g);
-            g.connect(master);
-            o.start();
-            l.start();
-        }
-        var mel = [440, 493.88, 554.37, 659.25, 739.99, 880];
-
-        function pluck(f, dur) {
-            if (!actx) return;
-            var o = actx.createOscillator(),
-                g = actx.createGain(),
-                t = actx.currentTime;
-            o.type = 'triangle';
-            o.frequency.value = f;
-            g.gain.setValueAtTime(0, t);
-            g.gain.linearRampToValueAtTime(.09, t + .15);
-            g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-            o.connect(g);
-            g.connect(master);
-            g.connect(delayN);
-            o.start(t);
-            o.stop(t + dur + .1);
-        }
-
-        function startProcedural() {
-            padN(110, .05);
-            padN(164.81, .04);
-            padN(220, .03);
-            padN(277.18, .02);
-            padN(329.63, .018);
-            schM();
-        }
-
-        function schM() {
-            if (!soundOn || currentTrack !== 'procedural') return;
-            if (Math.random() < .85) pluck(mel[Math.random() * mel.length | 0], 2.8);
-            musicTimer = setTimeout(schM, 1400 + Math.random() * 1800);
-        }
-
-        function tn(f0, f1, dur, vol, type, off) {
-            if (!actx) return;
-            var t = actx.currentTime + (off || 0),
-                o = actx.createOscillator(),
-                g = actx.createGain();
-            o.type = type || 'sine';
-            o.frequency.setValueAtTime(f0, t);
-            if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-            g.gain.setValueAtTime(vol, t);
-            g.gain.exponentialRampToValueAtTime(.001, t + dur);
-            o.connect(g);
-            g.connect(master);
-            o.start(t);
-            o.stop(t + dur + .05);
-        }
-
-        function sfx(k) {
-            if (!soundOn || !actx) return;
-            if (k === 'j') tn(300, 560, .12, .15);
-            else if (k === 'dj') tn(420, 760, .14, .14);
-            else if (k === 'la') tn(150, 70, .1, .12, 'triangle');
-            else if (k === 'sc') tn(880, 0, .22, .08);
-            else if (k === 'co') {
-                tn(988, 0, .08, .1);
-                tn(1319, 0, .18, .1, 'sine', .07);
-            } else if (k === 'cp') {
-                tn(659, 0, .12, .1);
-                tn(880, 0, .25, .1, 'sine', .12);
-            } else if (k === 'bo') tn(180, 520, .18, .14);
-            else if (k === 'br') tn(220, 80, .14, .13, 'square');
-            else if (k === 'cr') tn(700, 500, .05, .05, 'square');
-            else if (k === 'ul') {
-                tn(523, 0, .15, .1);
-                tn(659, 0, .15, .1, 'sine', .13);
-                tn(784, 0, .15, .1, 'sine', .26);
-                tn(1047, 0, .4, .1, 'sine', .39);
-            } else if (k === 'di') tn(300, 60, .6, .14, 'sawtooth');
-        }
-
-        function respawnAt(cp) {
-            P.pos.copy(cp.pos);
-            P.vel.set(0, 0, 0);
-            yaw = Math.PI;
-            pit = -.05;
-            jumpCount = 0;
-            jumpBuf = 0;
-            lastPlat = cp.plat;
-            score = cp.score;
-            ensureWorld(cp.plat);
-            shieldCharges = unlocked ? 1 : 0;
-            state = 'playing';
-            hideAll();
-            sh(el.hud);
-            document.body.classList.add('playing');
-            updHUD();
-            if (!touchMode && cv) cv.requestPointerLock();
-        }
-
-        function startGame() {
-            if (!gameReady) {
-                toast('بازی آماده نیست، صفحه را رفرش کن');
-                return;
-            }
-            runStartBest = best;
-            resetWorld();
-            checkpoint = {
-                plat: 0,
-                score: 0,
-                pos: new THREE.Vector3(.5, 12.2, 4.5)
-            };
-            respawnAt(checkpoint);
-        }
-
-        function fallOut() {
-            if (unlocked && shieldCharges > 0) {
-                shieldCharges--;
-                updHUD();
-                sfx('cp');
-                toast('🛡 سپر نجات!');
-                respawnAt(checkpoint);
-                return;
-            }
-            die();
-        }
-
-        function die() {
-            if (state !== 'playing') return;
-            state = 'dead';
-            sfx('di');
-            if (document.exitPointerLock) document.exitPointerLock();
-            hi(el.hud);
-            document.body.classList.remove('playing');
-            el.ds.textContent = toFa(score);
-            el.db.textContent = toFa(best);
-            if (score > runStartBest && score > 0) sh(el.dn);
-            else hi(el.dn);
-            if (checkpoint && checkpoint.plat > 0) sh(el.cpb);
-            else hi(el.cpb);
-            openPanel(el.dead);
-        }
-
-        function toMenu() {
-            state = 'menu';
-            if (document.exitPointerLock) document.exitPointerLock();
-            hi(el.hud);
-            document.body.classList.remove('playing');
-            syncMenu();
-            openPanel(el.menu);
-        }
-
-        function togglePause() {
-            if (state === 'playing') {
-                state = 'paused';
-                openPanel(el.pause);
-                if (document.exitPointerLock) document.exitPointerLock();
-            } else if (state === 'paused') {
-                state = 'playing';
-                hi(el.pause);
-                if (!touchMode && cv) cv.requestPointerLock();
-            }
-        }
-
-        function setMode(touch) {
-            touchMode = touch;
-            document.body.classList.toggle('touch', touch);
-            state = 'menu';
-            syncMenu();
-            openPanel(el.menu);
-        }
-
-        function updHUD() {
-            el.sc.textContent = 'امتیاز: ' + toFa(score);
-            el.cc.textContent = '🪙 ' + toFa(coinsTotal);
-            el.bc.textContent = 'رکورد: ' + toFa(best);
-            el.pc.textContent = unlocked ? ('⚡ دوبل | 🛡 ' + (shieldCharges ? '✓' : '✗')) : ('🪙 ' + toFa(coinsTotal) + '/۳۰');
-        }
-
-        function syncMenu() {
-            el.mb.textContent = 'بهترین رکورد: ' + toFa(best);
-            el.mc.textContent = unlocked ? '⚡ پرش دوبل و سپر سقوط: فعال ✅' : '🪙 سکه‌ها: ' + toFa(coinsTotal) + ' از ۳۰';
-        }
-
-        function syncSound() {
-            el.snd.textContent = soundOn ? '🔊 صدا: روشن' : '🔇 صدا: خاموش';
-        }
-
-        addEventListener('keydown', function(e) {
-            initAudio();
-            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
-            if (e.code === 'Space' && state === 'playing') {
-                if (!e.repeat) tryJump();
-                else jumpBuf = .1;
-            }
-            if (e.code === 'KeyV' && state === 'playing') thirdPerson = !thirdPerson;
-            if (e.code === 'Escape' && !touchMode && (state === 'playing' || state === 'paused')) togglePause();
-            keys[e.code] = true;
-        });
-        addEventListener('keyup', function(e) {
-            keys[e.code] = false;
-        });
-
-        function pollKeys() {
-            var x = 0,
-                y = 0;
-            if (keys.KeyW || keys.ArrowUp) y++;
-            if (keys.KeyS || keys.ArrowDown) y--;
-            if (keys.KeyA || keys.ArrowLeft) x--;
-            if (keys.KeyD || keys.ArrowRight) x++;
-            return {
-                x: x,
-                y: y
-            };
-        }
-
-        try {
-            initThree();
-        } catch (err) {
-            var eb = $id('errbox');
-            eb.style.display = 'block';
-            eb.textContent = 'خطای شروع گرافیک: ' + err.message;
-        }
-
-        if (cv) {
-            cv.addEventListener('click', function() {
-                initAudio();
-                if (state === 'playing' && !touchMode) cv.requestPointerLock();
-            });
-            document.addEventListener('mousemove', function(e) {
-                if (!touchMode && document.pointerLockElement === cv) {
-                    yaw -= e.movementX * .0024;
-                    pit = Math.max(-1.55, Math.min(1.55, pit - e.movementY * .0024));
+                function genPlat(i) {
+                    var t = Math.min(i / 28, 1),
+                        pv = plats[plats.length - 1];
+                    var sp = null;
+                    if (i >= 8 && Math.random() < .12 + .08 * t) sp = 'moving';
+                    else if (i >= 6) {
+                        var r = Math.random();
+                        if (r < .12) sp = 'ice';
+                        else if (r < .23) sp = 'slime';
+                        else if (r < .33) sp = 'break';
+                    }
+                    var dy = 0;
+                    if (i >= 3) {
+                        var r2 = Math.random(),
+                            dp = .3 + .25 * t;
+                        if (sp === 'moving') dy = Math.random() < .5 ? 0 : -1;
+                        else if (r2 < .15) dy = 1;
+                        else if (r2 < .15 + dp) dy = -(1 + (Math.random() * (1 + Math.round(2 * t)) | 0));
+                        else dy = 0;
+                    }
+                    var ny = Math.max(5, Math.min(22, pv.y + dy));
+                    dy = ny - pv.y;
+                    var mg = sp === 'moving' ? 2 : dy === 1 ? 1 : dy === 0 ? (t < .4 ? 2 : 3) : dy === -1 ? 3 : 4;
+                    var gap = Math.max(1, Math.round(1 + Math.random() * (mg - 1) * (.35 + .65 * t)));
+                    var w = Math.max(1, Math.round(2.7 - t * 1.5 - Math.random() * .7)),
+                        d = Math.random() < .5 * t ? 1 : 2;
+                    if (sp === 'ice') {
+                        w = Math.max(2, w);
+                        d = 2;
+                    }
+                    if (sp === 'break') d = Math.max(2, d);
+                    var x = Math.max(-8, Math.min(8, pv.x + Math.round((Math.random() - .5) * (1 + 2 * t)))),
+                        z = pv.z + pv.d + gap;
+                    var tm = {
+                        ice: 'ice',
+                        slime: 'slime',
+                        break: 'brk',
+                        moving: 'mov'
+                    };
+                    var type = sp ? tm[sp] : ['grass', 'grass', 'stone', 'plank', 'sand', 'log'][Math.random() * 6 | 0];
+                    var ms2 = [],
+                        mv = null;
+                    if (sp === 'moving') {
+                        w = 2;
+                        mv = {
+                            plat: i,
+                            y: ny,
+                            z: z,
+                            w: w,
+                            d: d,
+                            bx: x,
+                            cx: x,
+                            sx: x,
+                            ph: Math.random() * 6.28,
+                            spd: .8 + Math.random() * .7 + t * .7,
+                            amp: 1 + Math.random() * .6 + t * .4,
+                            ent: [],
+                            meshes: [],
+                            keys: []
+                        };
+                        for (var a = 0; a < w; a++)
+                            for (var b = 0; b < d; b++) {
+                                var m = new THREE.Mesh(BG, mats.mov);
+                                m.castShadow = m.receiveShadow = true;
+                                m.position.set(x + a + .5, ny + .5, z + b + .5);
+                                scene.add(m);
+                                mv.ent.push({
+                                    dx: a,
+                                    dz: b
+                                });
+                                mv.meshes.push(m);
+                            }
+                        movers.push(mv);
+                        movReg(mv);
+                    } else {
+                        for (var a = 0; a < w; a++)
+                            for (var b = 0; b < d; b++) {
+                                ms2.push(addBlock(x + a, ny, z + b, type, i));
+                                ms2.push(addBlock(x + a, ny - 1, z + b, type === 'grass' ? 'dirt' : 'stone', i));
+                            }
+                        if (Math.random() < .65) addCoin(x + (Math.random() * w | 0) + .5, ny + 1.25, z + (Math.random() * d | 0) + .5, i);
+                        if (i % 10 === 0) addFlag(x, ny, z, ms2);
+                    }
+                    plats.push({
+                        index: i,
+                        x: x,
+                        y: ny,
+                        z: z,
+                        w: w,
+                        d: d,
+                        meshes: ms2,
+                        mover: mv
+                    });
+                    npi = i + 1;
                 }
-            });
-        }
 
-        if (el.tz) {
-            el.tz.addEventListener('pointerdown', function(e) {
-                if (state !== 'playing' || !touchMode) return;
-                if (joy.id === null && e.clientX < innerWidth * .45 && e.clientY > innerHeight * .3) {
-                    joy.id = e.pointerId;
-                    joy.bx = e.clientX;
-                    joy.by = e.clientY;
-                    el.jb.style.display = 'block';
-                    el.jb.style.left = e.clientX + 'px';
-                    el.jb.style.top = e.clientY + 'px';
-                    el.jk.style.transform = 'translate(-50%,-50%)';
-                    e.preventDefault();
-                } else if (look.id === null) {
-                    look.id = e.pointerId;
-                    look.lx = e.clientX;
-                    look.ly = e.clientY;
-                    e.preventDefault();
+                function buildStart() {
+                    var y0 = 10,
+                        ms2 = [];
+                    for (var x = -3; x <= 3; x++)
+                        for (var z = 0; z <= 6; z++) {
+                            ms2.push(addBlock(x, y0, z, 'grass', 0));
+                            ms2.push(addBlock(x, y0 - 1, z, 'dirt', 0));
+                        }
+                    plats.push({
+                        index: 0,
+                        x: -3,
+                        y: y0,
+                        z: 0,
+                        w: 7,
+                        d: 7,
+                        meshes: ms2,
+                        mover: null
+                    });
+                    var px2 = [-3, 3],
+                        pz2 = [0, 2];
+                    for (var pi = 0; pi < 2; pi++)
+                        for (var qi = 0; qi < 2; qi++)
+                            for (var h = 1; h <= 3; h++) ms2.push(addBlock(px2[pi], y0 + h, pz2[qi], 'stone', 0));
+                    for (var x = -3; x <= 3; x++)
+                        for (var z = 0; z <= 2; z++) ms2.push(addBlock(x, y0 + 4, z, 'stone', 0));
+                    ms2.push(addBlock(0, y0 + 5, 1, 'gold', 0));
                 }
-            }, {
-                passive: false
-            });
-        }
-        addEventListener('pointermove', function(e) {
-            if (e.pointerId === joy.id) {
-                var dx = (e.clientX - joy.bx) / 50,
-                    dy = (e.clientY - joy.by) / 50;
-                var l = Math.hypot(dx, dy);
-                if (l > 1) {
-                    dx /= l;
-                    dy /= l;
+
+                function removePlat(p) {
+                    for (var i = 0; i < p.meshes.length; i++) {
+                        var e = p.meshes[i];
+                        scene.remove(e.mesh);
+                        if (e.key) {
+                            BM.delete(e.key);
+                            breakT.delete(e.key);
+                        }
+                    }
+                    if (p.mover) {
+                        for (var j = 0; j < p.mover.keys.length; j++) BM.delete(p.mover.keys[j]);
+                        for (var k2 = 0; k2 < p.mover.meshes.length; k2++) scene.remove(p.mover.meshes[k2]);
+                        var ix = movers.indexOf(p.mover);
+                        if (ix >= 0) movers.splice(ix, 1);
+                    }
+                    coinsArr = coinsArr.filter(function(c) {
+                        if (c.plat === p.index) {
+                            scene.remove(c.mesh);
+                            return false;
+                        }
+                        return true;
+                    });
                 }
-                inp.x = dx;
-                inp.y = -dy;
-                el.jk.style.transform = 'translate(calc(-50% + ' + (dx * 38) + 'px),calc(-50% + ' + (dy * 38) + 'px))';
-            } else if (e.pointerId === look.id) {
-                var dx2 = e.clientX - look.lx,
-                    dy2 = e.clientY - look.ly;
-                look.lx = e.clientX;
-                look.ly = e.clientY;
-                yaw -= dx2 * .005;
-                pit = Math.max(-1.55, Math.min(1.55, pit - dy2 * .005));
-            }
-        });
 
-        function pUp(e) {
-            if (e.pointerId === joy.id) {
-                joy.id = null;
-                inp.x = 0;
-                inp.y = 0;
-                el.jb.style.display = 'none';
-            }
-            if (e.pointerId === look.id) look.id = null;
-        }
-        addEventListener('pointerup', pUp);
-        addEventListener('pointercancel', pUp);
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden && state === 'playing') togglePause();
-        });
+                function ensureWorld(cur) {
+                    while (npi < cur + 8) genPlat(npi);
+                    var kf = Math.min(cur - 4, checkpoint ? checkpoint.plat : cur - 4);
+                    while (plats.length && plats[0].index < kf) removePlat(plats.shift());
+                }
 
-        el.jump.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (state === 'playing') tryJump();
-        }, {
-            passive: false
-        });
-        el.jump.addEventListener('click', function() {
-            if (state === 'playing') tryJump();
-        });
+                function resetWorld() {
+                    for (var i = 0; i < plats.length; i++) removePlat(plats[i]);
+                    plats = [];
+                    movers = [];
+                    coinsArr = [];
+                    falling = [];
+                    breakT.clear();
+                    BM.clear();
+                    npi = 1;
+                    buildStart();
+                    for (var j = 1; j < 8; j++) genPlat(j);
+                }
 
-        var actions = {
-            devTouch: function() {
-                setMode(true);
-            },
-            devDesk: function() {
-                setMode(false);
-            },
-            start: function() {
-                initAudio();
-                startGame();
-            },
-            retry: function() {
-                initAudio();
-                startGame();
-            },
-            restart: function() {
-                initAudio();
-                startGame();
-            },
-            cp: function() {
-                if (checkpoint) respawnAt(checkpoint);
-            },
-            resume: togglePause,
-            pause: togglePause,
-            view: function() {
-                thirdPerson = !thirdPerson;
-            },
-            pauseMenu: toMenu,
-            deadMenu: toMenu,
-            help: function() {
-                var b = '🪙 سکه جمع کن؛ با ۳۰ سکه «پرش دوبل» و «سپر سقوط» فعال می‌شود.<br>🚩 هر ۱۰ سکو چک‌پوینت • 🧊 یخ=لیز • 🟢 اسلایم=پرتاب • 🟫 شکننده • ⬜ متحرک<br>👁 تغییر دید: دکمه یا V<br><br>';
-                el.ht.innerHTML = b + (touchMode ? 'حرکت: جوی‌استیک چپ<br>نگاه: کشیدن انگشت<br>پرش: دکمه پرش<br>توقف: دکمه ⏸' : 'حرکت: WASD<br>پرش: Space<br>نگاه: موس (کلیک=قفل)<br>توقف: Esc');
-                openPanel(el.help);
-            },
-            helpBack: function() {
-                openPanel(el.menu);
-            },
-            sound: function() {
-                soundOn = !soundOn;
-                try {
-                    localStorage.setItem('pk_sound', soundOn ? '1' : '0');
-                } catch (e) {}
-                syncSound();
-                if (!soundOn) {
-                    stopMusic();
-                    clearTimeout(musicTimer);
-                } else {
-                    audioStarted = false;
+                var PW = .3,
+                    PH = 1.8,
+                    GV = 28,
+                    JV = 8.4,
+                    SP = 5.6;
+
+                function collides(px, py, pz) {
+                    var x0 = Math.floor(px - PW),
+                        x1 = Math.floor(px + PW),
+                        y0 = Math.floor(py),
+                        y1 = Math.floor(py + PH - .001),
+                        z0 = Math.floor(pz - PW),
+                        z1 = Math.floor(pz + PW);
+                    for (var x = x0; x <= x1; x++)
+                        for (var y = y0; y <= y1; y++)
+                            for (var z = z0; z <= z1; z++)
+                                if (BM.has(x + ',' + y + ',' + z)) return true;
+                    return false;
+                }
+
+                function probe(py) {
+                    var y = Math.floor(py);
+                    for (var a = 0; a < 2; a++)
+                        for (var b = 0; b < 2; b++) {
+                            var ox = a ? -0.25 : 0.25,
+                                oz = b ? -0.25 : 0.25;
+                            var k = Math.floor(P.pos.x + ox) + ',' + y + ',' + Math.floor(P.pos.z + oz);
+                            var v = BM.get(k);
+                            if (v) return v;
+                        }
+                    return null;
+                }
+
+                function tryJump() {
+                    if (state !== 'playing') return;
+                    if (P.og) {
+                        P.vel.y = JV;
+                        P.og = false;
+                        jumpCount = 0;
+                        sfx('j');
+                    } else if (unlocked && jumpCount < 1) {
+                        P.vel.y = JV * .95;
+                        jumpCount = 1;
+                        sfx('dj');
+                    } else jumpBuf = .12;
+                }
+
+                function updMovers(dt) {
+                    for (var i = 0; i < movers.length; i++) {
+                        var m = movers[i];
+                        m.ph += dt * m.spd;
+                        var pc = m.cx;
+                        m.cx = m.bx + Math.sin(m.ph) * m.amp;
+                        var ns = Math.round(m.cx);
+                        if (ns !== m.sx) {
+                            m.sx = ns;
+                            movReg(m);
+                        }
+                        for (var k = 0; k < m.meshes.length; k++) m.meshes[k].position.x = m.cx + m.ent[k].dx + .5;
+                        if (P.og) {
+                            var pu = probe(P.pos.y - .05);
+                            if (pu && pu.plat === m.plat) P.pos.x += m.cx - pc;
+                        }
+                    }
+                }
+
+                function collapseB(key) {
+                    var info = BM.get(key);
+                    if (!info || !info.mesh) return;
+                    BM.delete(key);
+                    breakT.delete(key);
+                    falling.push({
+                        mesh: info.mesh,
+                        vy: 0,
+                        t: 0,
+                        rx: (Math.random() - .5) * 4,
+                        rz: (Math.random() - .5) * 4
+                    });
+                    sfx('br');
+                }
+
+                function collectC(i) {
+                    var c = coinsArr[i];
+                    scene.remove(c.mesh);
+                    coinsArr.splice(i, 1);
+                    coinsTotal++;
+                    sfx('co');
+                    saveData();
+                    if (!unlocked && coinsTotal >= 30) {
+                        unlocked = true;
+                        shieldCharges = 1;
+                        sfx('ul');
+                        saveData();
+                        toast('🎉 ۳۰ سکه! پرش دوبل و سپر فعال شد!');
+                    }
+                    updHUD();
+                }
+
+                function physStep(dt) {
+                    updMovers(dt);
+                    var gi = P.og ? probe(P.pos.y - .05) : null,
+                        icy = gi && gi.type === 'ice';
+                    var ix = inp.x,
+                        iz = inp.y,
+                        l = Math.hypot(ix, iz);
+                    if (l > 1) {
+                        ix /= l;
+                        iz /= l;
+                    }
+                    var sy = Math.sin(yaw),
+                        cy = Math.cos(yaw),
+                        mx = -sy * iz + cy * ix,
+                        mz = -cy * iz - sy * ix;
+                    var ac = P.og ? (icy ? 7 : 70) : 25;
+                    P.vel.x += (mx * SP - P.vel.x) * Math.min(1, ac * dt);
+                    P.vel.z += (mz * SP - P.vel.z) * Math.min(1, ac * dt);
+                    if (jumpBuf > 0 && P.og) {
+                        P.vel.y = JV;
+                        P.og = false;
+                        jumpCount = 0;
+                        jumpBuf = 0;
+                        sfx('j');
+                    }
+                    jumpBuf -= dt;
+                    P.vel.y = Math.max(P.vel.y - GV * dt, -40);
+                    var nx = P.pos.x + P.vel.x * dt;
+                    if (collides(nx, P.pos.y, P.pos.z)) P.vel.x = 0;
+                    else P.pos.x = nx;
+                    var nz = P.pos.z + P.vel.z * dt;
+                    if (collides(P.pos.x, P.pos.y, nz)) P.vel.z = 0;
+                    else P.pos.z = nz;
+                    var ny = P.pos.y + P.vel.y * dt;
+                    if (collides(P.pos.x, ny, P.pos.z)) {
+                        if (P.vel.y < 0) {
+                            var hit = probe(ny);
+                            if (hit && hit.type === 'slime' && P.vel.y < -3) {
+                                P.vel.y = 10.5;
+                                jumpCount = 0;
+                                shakeAmt = Math.max(shakeAmt, .2);
+                                sfx('bo');
+                            } else {
+                                if (P.vel.y < -12) sfx('la');
+                                if (P.vel.y < -9) shakeAmt = Math.max(shakeAmt, Math.min(.4, (-P.vel.y - 8) * .05));
+                                var sn = Math.floor(ny) + 1;
+                                if (!collides(P.pos.x, sn, P.pos.z)) P.pos.y = sn;
+                                P.og = true;
+                                jumpCount = 0;
+                            }
+                        }
+                        if (P.og) P.vel.y = 0;
+                        else P.vel.y = Math.max(P.vel.y, 0);
+                    } else {
+                        P.pos.y = ny;
+                        P.og = false;
+                    }
+                    if (P.og) {
+                        var gb = probe(P.pos.y - .05);
+                        if (gb && gb.type === 'brk' && !breakT.has(gb.key)) {
+                            breakT.set(gb.key, 1);
+                            sfx('cr');
+                        }
+                        if (gb && gb.plat !== lastPlat) {
+                            lastPlat = gb.plat;
+                            if (gb.plat > score) {
+                                score = gb.plat;
+                                updHUD();
+                                sfx('sc');
+                                if (score > best) {
+                                    best = score;
+                                    saveData();
+                                }
+                                if (score % 10 === 0) {
+                                    var pl = null;
+                                    for (var i = 0; i < plats.length; i++)
+                                        if (plats[i].index === score) {
+                                            pl = plats[i];
+                                            break;
+                                        }
+                                    if (pl) {
+                                        checkpoint = {
+                                            plat: score,
+                                            score: score,
+                                            pos: new THREE.Vector3(pl.x + pl.w / 2, pl.y + 1.01, pl.z + pl.d / 2)
+                                        };
+                                        sfx('cp');
+                                        toast('🚩 چک‌پوینت!');
+                                    }
+                                }
+                                ensureWorld(gb.plat);
+                            }
+                        }
+                    }
+                    var keysArr = Array.from(breakT.keys());
+                    for (var bi = 0; bi < keysArr.length; bi++) {
+                        var kk = keysArr[bi],
+                            tv = breakT.get(kk),
+                            nv = tv - dt;
+                        if (nv <= 0) collapseB(kk);
+                        else breakT.set(kk, nv);
+                    }
+                    for (var ci = coinsArr.length - 1; ci >= 0; ci--) {
+                        var c = coinsArr[ci];
+                        var dx = c.x - P.pos.x,
+                            dy2 = c.y - (P.pos.y + .9),
+                            dz = c.z - P.pos.z;
+                        if (dx * dx + dy2 * dy2 + dz * dz < 1.15) collectC(ci);
+                    }
+                    var my = 1e9;
+                    for (var pi = 0; pi < plats.length; pi++)
+                        if (plats[pi].y < my) my = plats[pi].y;
+                    if (P.pos.y < my - 9) fallOut();
+                }
+
+                /* ===== صدا (SFX + Procedural Music) ===== */
+                function initAudio() {
+                    if (!soundOn) return;
+                    if (!audioStarted) {
+                        audioStarted = true;
+                        try {
+                            actx = new(window.AudioContext || window.webkitAudioContext)();
+                            master = actx.createGain();
+                            master.gain.value = .45;
+                            master.connect(actx.destination);
+                            delayN = actx.createDelay();
+                            delayN.delayTime.value = .65;
+                            var fb = actx.createGain();
+                            fb.gain.value = .4;
+                            delayN.connect(fb);
+                            fb.connect(delayN);
+                            var w = actx.createGain();
+                            w.gain.value = .4;
+                            delayN.connect(w);
+                            w.connect(master);
+                            if (currentTrack === 'procedural') startProcedural();
+                            else if (currentTrack !== 'none') playMCTrack(currentTrack);
+                        } catch (e) {}
+                    }
+                    if (actx && actx.state === 'suspended') actx.resume();
+                }
+
+                function padN(f, v) {
+                    if (!actx) return;
+                    var o = actx.createOscillator(),
+                        g = actx.createGain(),
+                        l = actx.createOscillator(),
+                        lg = actx.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = f;
+                    g.gain.value = v;
+                    l.type = 'sine';
+                    l.frequency.value = .05 + Math.random() * .05;
+                    lg.gain.value = v * .4;
+                    l.connect(lg);
+                    lg.connect(g.gain);
+                    o.connect(g);
+                    g.connect(master);
+                    o.start();
+                    l.start();
+                }
+                var mel = [440, 493.88, 554.37, 659.25, 739.99, 880];
+
+                function pluck(f, dur) {
+                    if (!actx) return;
+                    var o = actx.createOscillator(),
+                        g = actx.createGain(),
+                        t = actx.currentTime;
+                    o.type = 'triangle';
+                    o.frequency.value = f;
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(.09, t + .15);
+                    g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+                    o.connect(g);
+                    g.connect(master);
+                    g.connect(delayN);
+                    o.start(t);
+                    o.stop(t + dur + .1);
+                }
+
+                function startProcedural() {
+                    padN(110, .05);
+                    padN(164.81, .04);
+                    padN(220, .03);
+                    padN(277.18, .02);
+                    padN(329.63, .018);
+                    schM();
+                }
+
+                function schM() {
+                    if (!soundOn || currentTrack !== 'procedural') return;
+                    if (Math.random() < .85) pluck(mel[Math.random() * mel.length | 0], 2.8);
+                    musicTimer = setTimeout(schM, 1400 + Math.random() * 1800);
+                }
+
+                function tn(f0, f1, dur, vol, type, off) {
+                    if (!actx) return;
+                    var t = actx.currentTime + (off || 0),
+                        o = actx.createOscillator(),
+                        g = actx.createGain();
+                    o.type = type || 'sine';
+                    o.frequency.setValueAtTime(f0, t);
+                    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+                    g.gain.setValueAtTime(vol, t);
+                    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+                    o.connect(g);
+                    g.connect(master);
+                    o.start(t);
+                    o.stop(t + dur + .05);
+                }
+
+                function sfx(k) {
+                    if (!soundOn || !actx) return;
+                    if (k === 'j') tn(300, 560, .12, .15);
+                    else if (k === 'dj') tn(420, 760, .14, .14);
+                    else if (k === 'la') tn(150, 70, .1, .12, 'triangle');
+                    else if (k === 'sc') tn(880, 0, .22, .08);
+                    else if (k === 'co') {
+                        tn(988, 0, .08, .1);
+                        tn(1319, 0, .18, .1, 'sine', .07);
+                    } else if (k === 'cp') {
+                        tn(659, 0, .12, .1);
+                        tn(880, 0, .25, .1, 'sine', .12);
+                    } else if (k === 'bo') tn(180, 520, .18, .14);
+                    else if (k === 'br') tn(220, 80, .14, .13, 'square');
+                    else if (k === 'cr') tn(700, 500, .05, .05, 'square');
+                    else if (k === 'ul') {
+                        tn(523, 0, .15, .1);
+                        tn(659, 0, .15, .1, 'sine', .13);
+                        tn(784, 0, .15, .1, 'sine', .26);
+                        tn(1047, 0, .4, .1, 'sine', .39);
+                    } else if (k === 'di') tn(300, 60, .6, .14, 'sawtooth');
+                }
+
+                function respawnAt(cp) {
+                    P.pos.copy(cp.pos);
+                    P.vel.set(0, 0, 0);
+                    yaw = Math.PI;
+                    pit = -.05;
+                    jumpCount = 0;
+                    jumpBuf = 0;
+                    lastPlat = cp.plat;
+                    score = cp.score;
+                    ensureWorld(cp.plat);
+                    shieldCharges = unlocked ? 1 : 0;
+                    state = 'playing';
+                    hideAll();
+                    sh(el.hud);
+                    document.body.classList.add('playing');
+                    updHUD();
+                    if (!touchMode && cv) cv.requestPointerLock();
+                }
+
+                function startGame() {
+                    if (!gameReady) {
+                        toast('بازی آماده نیست، صفحه را رفرش کن');
+                        return;
+                    }
+                    runStartBest = best;
+                    resetWorld();
+                    checkpoint = {
+                        plat: 0,
+                        score: 0,
+                        pos: new THREE.Vector3(.5, 12.2, 4.5)
+                    };
+                    respawnAt(checkpoint);
+                }
+
+                function fallOut() {
+                    if (unlocked && shieldCharges > 0) {
+                        shieldCharges--;
+                        updHUD();
+                        sfx('cp');
+                        toast('🛡 سپر نجات!');
+                        respawnAt(checkpoint);
+                        return;
+                    }
+                    die();
+                }
+
+                function die() {
+                    if (state !== 'playing') return;
+                    state = 'dead';
+                    sfx('di');
+                    if (document.exitPointerLock) document.exitPointerLock();
+                    hi(el.hud);
+                    document.body.classList.remove('playing');
+                    el.ds.textContent = toFa(score);
+                    el.db.textContent = toFa(best);
+                    if (score > runStartBest && score > 0) sh(el.dn);
+                    else hi(el.dn);
+                    if (checkpoint && checkpoint.plat > 0) sh(el.cpb);
+                    else hi(el.cpb);
+                    openPanel(el.dead);
+                }
+
+                function toMenu() {
+                    state = 'menu';
+                    if (document.exitPointerLock) document.exitPointerLock();
+                    hi(el.hud);
+                    document.body.classList.remove('playing');
+                    syncMenu();
+                    openPanel(el.menu);
+                }
+
+                function togglePause() {
+                    if (state === 'playing') {
+                        state = 'paused';
+                        openPanel(el.pause);
+                        if (document.exitPointerLock) document.exitPointerLock();
+                    } else if (state === 'paused') {
+                        state = 'playing';
+                        hi(el.pause);
+                        if (!touchMode && cv) cv.requestPointerLock();
+                    }
+                }
+
+                function setMode(touch) {
+                    touchMode = touch;
+                    document.body.classList.toggle('touch', touch);
+                    state = 'menu';
+                    syncMenu();
+                    openPanel(el.menu);
+                }
+
+                function updHUD() {
+                    el.sc.textContent = 'امتیاز: ' + toFa(score);
+                    el.cc.textContent = '🪙 ' + toFa(coinsTotal);
+                    el.bc.textContent = 'رکورد: ' + toFa(best);
+                    el.pc.textContent = unlocked ? ('⚡ دوبل | 🛡 ' + (shieldCharges ? '✓' : '✗')) : ('🪙 ' + toFa(coinsTotal) + '/۳۰');
+                }
+
+                function syncMenu() {
+                    el.mb.textContent = 'بهترین رکورد: ' + toFa(best);
+                    el.mc.textContent = unlocked ? '⚡ پرش دوبل و سپر سقوط: فعال ✅' : '🪙 سکه‌ها: ' + toFa(coinsTotal) + ' از ۳۰';
+                }
+
+                function syncSound() {
+                    el.snd.textContent = soundOn ? '🔊 صدا: روشن' : '🔇 صدا: خاموش';
+                }
+
+                addEventListener('keydown', function(e) {
                     initAudio();
-                }
-            },
-            devChange: function() {
-                state = 'device';
-                openPanel(el.device);
-            },
-            pauseDev: function() {
-                state = 'device';
-                hi(el.hud);
-                document.body.classList.remove('playing');
-                openPanel(el.device);
-            }
-        };
-        document.addEventListener('click', function(e) {
-            var t = e.target;
-            while (t && t !== document.body) {
-                if (t.getAttribute && t.getAttribute('data-act')) {
-                    var a = actions[t.getAttribute('data-act')];
-                    if (a) a();
-                    return;
-                }
-                t = t.parentNode;
-            }
-        });
+                    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
+                    if (e.code === 'Space' && state === 'playing') {
+                        if (!e.repeat) tryJump();
+                        else jumpBuf = .1;
+                    }
+                    if (e.code === 'KeyV' && state === 'playing') thirdPerson = !thirdPerson;
+                    if (e.code === 'Escape' && !touchMode && (state === 'playing' || state === 'paused')) togglePause();
+                    keys[e.code] = true;
+                });
+                addEventListener('keyup', function(e) {
+                    keys[e.code] = false;
+                });
 
-        var _v1 = new THREE.Vector3(),
-            _v2 = new THREE.Vector3(),
-            _v3 = new THREE.Vector3();
+                function pollKeys() {
+                    var x = 0,
+                        y = 0;
+                    if (keys.KeyW || keys.ArrowUp) y++;
+                    if (keys.KeyS || keys.ArrowDown) y--;
+                    if (keys.KeyA || keys.ArrowLeft) x--;
+                    if (keys.KeyD || keys.ArrowRight) x++;
+                    return {
+                        x: x,
+                        y: y
+                    };
+                }
 
-        function updCamera(dt) {
-            _v1.set(P.pos.x, P.pos.y + 1.62, P.pos.z);
-            var cp = Math.cos(pit),
-                sp = Math.sin(pit);
-            _v2.set(-Math.sin(yaw) * cp, sp, -Math.cos(yaw) * cp);
-            var third = thirdPerson || state !== 'playing';
-            PM.visible = third;
-            if (third) {
-                camera.position.copy(_v1).addScaledVector(_v2, -4.1);
-                camera.position.y += .4;
-                camera.lookAt(_v3.copy(_v1).addScaledVector(_v2, 3));
-            } else {
-                camera.position.copy(_v1);
-                camera.rotation.y = yaw;
-                camera.rotation.x = pit;
-            }
-            if (shakeAmt > .002) {
-                camera.position.x += (Math.random() - .5) * shakeAmt;
-                camera.position.y += (Math.random() - .5) * shakeAmt;
-                camera.position.z += (Math.random() - .5) * shakeAmt;
-                shakeAmt *= Math.exp(-7 * dt);
-            } else shakeAmt = 0;
-            skyMesh.position.copy(camera.position);
-            sunSpr.position.set(camera.position.x + 120, camera.position.y + 170, camera.position.z + 320);
-            sun.position.set(P.pos.x + 60, P.pos.y + 90, P.pos.z + 40);
-            sun.target.position.copy(P.pos);
-            sun.target.updateMatrixWorld();
-        }
+                try {
+                    initThree();
+                } catch (err) {
+                    var eb = $id('errbox');
+                    eb.style.display = 'block';
+                    eb.textContent = 'خطای شروع گرافیک: ' + err.message;
+                }
 
-        function loop(now) {
-            requestAnimationFrame(loop);
-            var dt = Math.min((now - lastT) / 1000, .05);
-            lastT = now;
-            if (!gameReady) return;
-            if (state === 'playing') {
-                if (!touchMode) {
-                    var k = pollKeys();
-                    inp.x = k.x;
-                    inp.y = k.y;
-                } else if (joy.id === null) {
-                    inp.x = 0;
-                    inp.y = 0;
+                if (cv) {
+                    cv.addEventListener('click', function() {
+                        initAudio();
+                        if (state === 'playing' && !touchMode) cv.requestPointerLock();
+                    });
+                    document.addEventListener('mousemove', function(e) {
+                        if (!touchMode && document.pointerLockElement === cv) {
+                            yaw -= e.movementX * .0024;
+                            pit = Math.max(-1.55, Math.min(1.55, pit - e.movementY * .0024));
+                        }
+                    });
                 }
-                accum = Math.min(accum + dt, .25);
-                var step = 1 / 120;
-                while (accum >= step) {
-                    physStep(step);
-                    accum -= step;
+
+                if (el.tz) {
+                    el.tz.addEventListener('pointerdown', function(e) {
+                        if (state !== 'playing' || !touchMode) return;
+                        if (joy.id === null && e.clientX < innerWidth * .45 && e.clientY > innerHeight * .3) {
+                            joy.id = e.pointerId;
+                            joy.bx = e.clientX;
+                            joy.by = e.clientY;
+                            el.jb.style.display = 'block';
+                            el.jb.style.left = e.clientX + 'px';
+                            el.jb.style.top = e.clientY + 'px';
+                            el.jk.style.transform = 'translate(-50%,-50%)';
+                            e.preventDefault();
+                        } else if (look.id === null) {
+                            look.id = e.pointerId;
+                            look.lx = e.clientX;
+                            look.ly = e.clientY;
+                            e.preventDefault();
+                        }
+                    }, {
+                        passive: false
+                    });
                 }
-            } else if (state === 'menu' || state === 'device') {
-                menuTime += dt;
-                yaw = menuTime * .3;
-                pit = -.22;
-            }
-            var spd = Math.hypot(P.vel.x, P.vel.z);
-            if (state === 'playing' && spd > .6) walkT += dt * (4 + spd);
-            else walkT *= .85;
-            var sw = P.og ? Math.sin(walkT) * .65 : .5;
-            CP.ll.rotation.x = sw;
-            CP.lr.rotation.x = -sw;
-            CP.al.rotation.x = -sw * .7;
-            CP.ar.rotation.x = sw * .7;
-            PM.position.copy(P.pos);
-            if (spd > .6) {
-                var ta = Math.atan2(P.vel.x, P.vel.z);
-                var d = ta - PM.rotation.y;
-                while (d > Math.PI) d -= 6.28;
-                while (d < -Math.PI) d += 6.28;
-                PM.rotation.y += d * .15;
-            }
-            for (var i = 0; i < clouds.length; i++) {
-                var c = clouds[i];
-                c.position.x += dt * 1.2;
-                if (c.position.x > camera.position.x + 180) c.position.x -= 360;
-                if (c.position.z < camera.position.z - 60) c.position.z += 360;
-            }
-            for (var fi = falling.length - 1; fi >= 0; fi--) {
-                var f = falling[fi];
-                f.vy -= 30 * dt;
-                f.mesh.position.y += f.vy * dt;
-                f.mesh.rotation.x += f.rx * dt;
-                f.mesh.rotation.z += f.rz * dt;
-                f.t += dt;
-                if (f.t > 1.4) {
-                    scene.remove(f.mesh);
-                    falling.splice(fi, 1);
+                addEventListener('pointermove', function(e) {
+                    if (e.pointerId === joy.id) {
+                        var dx = (e.clientX - joy.bx) / 50,
+                            dy = (e.clientY - joy.by) / 50;
+                        var l = Math.hypot(dx, dy);
+                        if (l > 1) {
+                            dx /= l;
+                            dy /= l;
+                        }
+                        inp.x = dx;
+                        inp.y = -dy;
+                        el.jk.style.transform = 'translate(calc(-50% + ' + (dx * 38) + 'px),calc(-50% + ' + (dy * 38) + 'px))';
+                    } else if (e.pointerId === look.id) {
+                        var dx2 = e.clientX - look.lx,
+                            dy2 = e.clientY - look.ly;
+                        look.lx = e.clientX;
+                        look.ly = e.clientY;
+                        yaw -= dx2 * .005;
+                        pit = Math.max(-1.55, Math.min(1.55, pit - dy2 * .005));
+                    }
+                });
+
+                function pUp(e) {
+                    if (e.pointerId === joy.id) {
+                        joy.id = null;
+                        inp.x = 0;
+                        inp.y = 0;
+                        el.jb.style.display = 'none';
+                    }
+                    if (e.pointerId === look.id) look.id = null;
                 }
-            }
-            for (var ci = 0; ci < coinsArr.length; ci++) {
-                var cn = coinsArr[ci];
-                cn.mesh.rotation.y += dt * 2.5;
-                cn.mesh.position.y = cn.y + Math.sin(now * .002 + cn.ph) * .12;
-            }
-            updCamera(dt);
-            R.render(scene, camera);
-        }
-        syncMenu();
-        syncSound();
-        if (gameReady) {
-            resetWorld();
-            requestAnimationFrame(loop);
-        }
-    </script>
+                addEventListener('pointerup', pUp);
+                addEventListener('pointercancel', pUp);
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden && state === 'playing') togglePause();
+                });
+
+                el.jump.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (state === 'playing') tryJump();
+                }, {
+                    passive: false
+                });
+                el.jump.addEventListener('click', function() {
+                    if (state === 'playing') tryJump();
+                });
+
+                var actions = {
+                    devTouch: function() {
+                        setMode(true);
+                    },
+                    devDesk: function() {
+                        setMode(false);
+                    },
+                    start: function() {
+                        initAudio();
+                        startGame();
+                    },
+                    retry: function() {
+                        initAudio();
+                        startGame();
+                    },
+                    restart: function() {
+                        initAudio();
+                        startGame();
+                    },
+                    cp: function() {
+                        if (checkpoint) respawnAt(checkpoint);
+                    },
+                    resume: togglePause,
+                    pause: togglePause,
+                    view: function() {
+                        thirdPerson = !thirdPerson;
+                    },
+                    pauseMenu: toMenu,
+                    deadMenu: toMenu,
+                    help: function() {
+                        var b = '🪙 سکه جمع کن؛ با ۳۰ سکه «پرش دوبل» و «سپر سقوط» فعال می‌شود.<br>🚩 هر ۱۰ سکو چک‌پوینت • 🧊 یخ=لیز • 🟢 اسلایم=پرتاب • 🟫 شکننده • ⬜ متحرک<br>👁 تغییر دید: دکمه یا V<br><br>';
+                        el.ht.innerHTML = b + (touchMode ? 'حرکت: جوی‌استیک چپ<br>نگاه: کشیدن انگشت<br>پرش: دکمه پرش<br>توقف: دکمه ⏸' : 'حرکت: WASD<br>پرش: Space<br>نگاه: موس (کلیک=قفل)<br>توقف: Esc');
+                        openPanel(el.help);
+                    },
+                    helpBack: function() {
+                        openPanel(el.menu);
+                    },
+                    sound: function() {
+                        soundOn = !soundOn;
+                        try {
+                            localStorage.setItem('pk_sound', soundOn ? '1' : '0');
+                        } catch (e) {}
+                        syncSound();
+                        if (!soundOn) {
+                            stopMusic();
+                            clearTimeout(musicTimer);
+                        } else {
+                            audioStarted = false;
+                            initAudio();
+                        }
+                    },
+                    devChange: function() {
+                        state = 'device';
+                        openPanel(el.device);
+                    },
+                    pauseDev: function() {
+                        state = 'device';
+                        hi(el.hud);
+                        document.body.classList.remove('playing');
+                        openPanel(el.device);
+                    }
+                };
+                document.addEventListener('click', function(e) {
+                    var t = e.target;
+                    while (t && t !== document.body) {
+                        if (t.getAttribute && t.getAttribute('data-act')) {
+                            var a = actions[t.getAttribute('data-act')];
+                            if (a) a();
+                            return;
+                        }
+                        t = t.parentNode;
+                    }
+                });
+
+                var _v1 = new THREE.Vector3(),
+                    _v2 = new THREE.Vector3(),
+                    _v3 = new THREE.Vector3();
+
+                function updCamera(dt) {
+                    _v1.set(P.pos.x, P.pos.y + 1.62, P.pos.z);
+                    var cp = Math.cos(pit),
+                        sp = Math.sin(pit);
+                    _v2.set(-Math.sin(yaw) * cp, sp, -Math.cos(yaw) * cp);
+                    var third = thirdPerson || state !== 'playing';
+                    PM.visible = third;
+                    if (third) {
+                        camera.position.copy(_v1).addScaledVector(_v2, -4.1);
+                        camera.position.y += .4;
+                        camera.lookAt(_v3.copy(_v1).addScaledVector(_v2, 3));
+                    } else {
+                        camera.position.copy(_v1);
+                        camera.rotation.y = yaw;
+                        camera.rotation.x = pit;
+                    }
+                    if (shakeAmt > .002) {
+                        camera.position.x += (Math.random() - .5) * shakeAmt;
+                        camera.position.y += (Math.random() - .5) * shakeAmt;
+                        camera.position.z += (Math.random() - .5) * shakeAmt;
+                        shakeAmt *= Math.exp(-7 * dt);
+                    } else shakeAmt = 0;
+                    skyMesh.position.copy(camera.position);
+                    sunSpr.position.set(camera.position.x + 120, camera.position.y + 170, camera.position.z + 320);
+                    sun.position.set(P.pos.x + 60, P.pos.y + 90, P.pos.z + 40);
+                    sun.target.position.copy(P.pos);
+                    sun.target.updateMatrixWorld();
+                }
+
+                function loop(now) {
+                    requestAnimationFrame(loop);
+                    var dt = Math.min((now - lastT) / 1000, .05);
+                    lastT = now;
+                    if (!gameReady) return;
+                    if (state === 'playing') {
+                        if (!touchMode) {
+                            var k = pollKeys();
+                            inp.x = k.x;
+                            inp.y = k.y;
+                        } else if (joy.id === null) {
+                            inp.x = 0;
+                            inp.y = 0;
+                        }
+                        accum = Math.min(accum + dt, .25);
+                        var step = 1 / 120;
+                        while (accum >= step) {
+                            physStep(step);
+                            accum -= step;
+                        }
+                    } else if (state === 'menu' || state === 'device') {
+                        menuTime += dt;
+                        yaw = menuTime * .3;
+                        pit = -.22;
+                    }
+                    var spd = Math.hypot(P.vel.x, P.vel.z);
+                    if (state === 'playing' && spd > .6) walkT += dt * (4 + spd);
+                    else walkT *= .85;
+                    var sw = P.og ? Math.sin(walkT) * .65 : .5;
+                    CP.ll.rotation.x = sw;
+                    CP.lr.rotation.x = -sw;
+                    CP.al.rotation.x = -sw * .7;
+                    CP.ar.rotation.x = sw * .7;
+                    PM.position.copy(P.pos);
+                    if (spd > .6) {
+                        var ta = Math.atan2(P.vel.x, P.vel.z);
+                        var d = ta - PM.rotation.y;
+                        while (d > Math.PI) d -= 6.28;
+                        while (d < -Math.PI) d += 6.28;
+                        PM.rotation.y += d * .15;
+                    }
+                    for (var i = 0; i < clouds.length; i++) {
+                        var c = clouds[i];
+                        c.position.x += dt * 1.2;
+                        if (c.position.x > camera.position.x + 180) c.position.x -= 360;
+                        if (c.position.z < camera.position.z - 60) c.position.z += 360;
+                    }
+                    for (var fi = falling.length - 1; fi >= 0; fi--) {
+                        var f = falling[fi];
+                        f.vy -= 30 * dt;
+                        f.mesh.position.y += f.vy * dt;
+                        f.mesh.rotation.x += f.rx * dt;
+                        f.mesh.rotation.z += f.rz * dt;
+                        f.t += dt;
+                        if (f.t > 1.4) {
+                            scene.remove(f.mesh);
+                            falling.splice(fi, 1);
+                        }
+                    }
+                    for (var ci = 0; ci < coinsArr.length; ci++) {
+                        var cn = coinsArr[ci];
+                        cn.mesh.rotation.y += dt * 2.5;
+                        cn.mesh.position.y = cn.y + Math.sin(now * .002 + cn.ph) * .12;
+                    }
+                    updCamera(dt);
+                    R.render(scene, camera);
+                }
+                syncMenu();
+                syncSound();
+                if (gameReady) {
+                    resetWorld();
+                    requestAnimationFrame(loop);
+                }
+            </script>
 </body>
 
 </html>
