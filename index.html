@@ -323,7 +323,16 @@
         <button class="btn" data-act="start">▶ شروع بازی</button>
         <button class="btn alt" data-act="help">📖 راهنما</button>
         <button class="btn gray" data-act="sound" id="btnSound">🔊 صدا: روشن</button>
-        <button class="btn gray" data-act="toggleMode" id="btnMode">🎮 حالت: ۲بعدی</button>
+        <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
+    </div>
+
+    <!-- پنل انتخاب حالت بازی -->
+    <div id="modePanel" class="panel hidden">
+        <br><br>
+        <h2>🎮 حالت بازی را انتخاب کن</h2>
+        <button class="btn alt" data-act="start2D">🖥 دوبعدی (۲D)</button>
+        <button class="btn" data-act="start3D">🌐 سه‌بعدی (۳D)</button>
+        <button class="btn gray" data-act="modeBack">بازگشت</button>
         <h4 style="color: white;">ساخته شده توسط علی سینا</h4>
     </div>
 
@@ -395,7 +404,7 @@
             pc: $id('powChip'),
             snd: $id('btnSound'),
             btnMusic: $id('btnMusic'),
-            btnMode: $id('btnMode')
+            mP: $id('modePanel')
         };
 
         function detectTouch() {
@@ -444,6 +453,7 @@
             hi(el.help);
             hi(el.pause);
             hi(el.dead);
+            hi(el.mP);
         }
 
         function openPanel(p) {
@@ -2206,10 +2216,6 @@
             el.snd.textContent = soundOn ? '🔊 صدا: روشن' : '🔇 صدا: خاموش';
         }
 
-        function updateModeUI() {
-            el.btnMode.textContent = gameMode === '3D' ? '🎮 حالت: ۳بعدی' : '🎮 حالت: ۲بعدی';
-        }
-
         function applyModeVisuals() {
             if (!scene) return;
             scene.background = new THREE.Color(0x87ceeb);
@@ -2354,7 +2360,22 @@
         var actions = {
             start: function() {
                 initAudio();
+                openPanel(el.mP); // انتخاب حالت قبل از شروع
+            },
+            start2D: function() {
+                gameMode = '2D';
+                applyModeVisuals();
+                initAudio();
                 startGame();
+            },
+            start3D: function() {
+                gameMode = '3D';
+                applyModeVisuals();
+                initAudio();
+                startGame();
+            },
+            modeBack: function() {
+                openPanel(el.menu);
             },
             retry: function() {
                 initAudio();
@@ -2399,7 +2420,6 @@
             },
             toggleMode: function() {
                 gameMode = gameMode === '3D' ? '2D' : '3D';
-                updateModeUI();
                 applyModeVisuals();
                 if (state === 'playing' || state === 'paused') {
                     toMenu();
@@ -2812,7 +2832,6 @@
         document.body.classList.toggle('touch', touchMode);
         syncMenu();
         syncSound();
-        updateModeUI();
         applyModeVisuals();
         openPanel(el.menu);
         if (gameReady) {
